@@ -24,7 +24,7 @@ Tool Execution → Evidence → Deterministic Verdict → Structured Trace.
 The UI/API expose architecture analysis and **Suggested Verifications** (M5).
 After analysis, click Discover Verifications deliberately to request grounded
 recommendations; no paid model call happens automatically. Verification execution
-and runtime verification are not integrated. See [the milestone plan](docs/mvp-plan.md).
+is now available for the installed static OpenAI timeout policy (M6), with source-backed evidence, deterministic verdict and trace. Runtime verification and other suggested checks remain unavailable. See [the milestone plan](docs/mvp-plan.md).
 
 ## Local setup
 
@@ -130,7 +130,7 @@ A new analysis clears prior suggestions. Applicability/support/mode/priority com
 from the server; no Evidence, Verdict or verification execution is implied.
 Discovery compares fresh normalized architecture with the displayed analysis ID.
 A mismatch produces a stale-analysis message; analyze again explicitly. The hash
-covers normalized facts, not every source byte; keep the repository stable. Verification execution is future M6 work.
+covers normalized facts, not every source byte; keep the repository stable. Run Verification executes the installed timeout policy without a provider call or API key. Other suggestions remain non-executable. New analysis or discovery clears prior results.
 
 ## Validation and collaboration
 

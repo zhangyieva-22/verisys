@@ -237,3 +237,13 @@ def test_missing_or_invalid_precondition_is_rejected(repository, identifier):
         data['expected_architecture_id'] = identifier
     assert client.post(URL, json=data).status_code == 400
     assert not generator.inputs
+
+
+def test_capability_is_registry_owned_even_for_partial_candidate(repository, monkeypatch):
+    (repository/'app.py').write_text('from langchain_openai import ChatOpenAI\nclient=ChatOpenAI()\n')
+    response=request(repository)
+    assert response.status_code == 200
+    timeout=response.json()['candidates'][0]
+    assert timeout['execution_support'] == 'PARTIAL' and timeout['can_execute'] is True
+    monkeypatch.setattr(api,'get_verifier',lambda _:None)
+    assert request(repository).json()['candidates'][0]['can_execute'] is False

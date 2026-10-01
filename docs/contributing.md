@@ -9,7 +9,7 @@ has local setup; [mvp-plan.md](mvp-plan.md) has current milestone status.
 Read the product specification and architecture before changing a layer. Inspect
 the implementation/tests rather than assuming a roadmap capability is connected.
 The local UI performs architecture analysis and user-triggered M5 discovery.
-M4 verification remains a Python core; execution integration is planned for M6.
+M6 exposes the unchanged M4 timeout verifier through the local API/UI. Verification uses no provider; other suggested checks remain non-executable.
 
 Install dependencies in your own Python environment and use `npm ci` in frontend.
 Analyzed repositories do not need their dependencies installed and must never be

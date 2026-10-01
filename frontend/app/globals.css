@@ -241,3 +241,22 @@ h2 { font-size: 20px; letter-spacing: -0.5px; font-weight: 600; margin-top: 0; m
 .suggestion-detail ul { padding-left: 18px; line-height: 1.7; }
 .discovery-limitations p { margin-top: 7px; overflow-wrap: anywhere; }
 .discovery-error button { margin-top: 9px; text-decoration: underline; font-size: 12px; }
+
+.verification-result { margin-top: 24px; padding: 20px; border: 1px solid #bac6c0; background: #fafcfb; }
+.verification-result header > span { font-size: 10px; letter-spacing: .12em; color: #52615a; }
+.verification-result h3 { margin: 8px 0 16px; }
+.verification-result h4 { margin: 24px 0 10px; }
+.verification-counts { display: flex; gap: 22px; padding: 12px 0; border-block: 1px solid #dce3df; }
+.verification-counts strong { font-size: 20px; }
+.verification-evidence { border-top: 1px solid #d5ded8; padding: 12px 0; }
+.verification-evidence > code { display: block; color: #284e70; margin-bottom: 8px; }
+.verification-evidence p { margin: 8px 0; }
+.verification-result details { margin: 12px 0; }
+.verification-result pre { font-size: 11px; overflow: auto; max-height: 240px; }
+.evidence-id { display: block; font-size: 10px; overflow-wrap: anywhere; margin: 5px 0; }
+.result-status.verified, .observation-status.configured { color: #276843; }
+.result-status.violated, .observation-status.missing { color: #9e3535; }
+.result-status.not_verifiable, .observation-status.unknown { color: #865b13; }
+.observation-status { font-size: 11px; font-weight: 700; display: inline-block; margin-top: 8px; }
+.verification-trace { padding-left: 18px; }
+.verification-outcome { font-size: 24px; font-weight: 700; margin: 14px 0; letter-spacing: -.02em; }

@@ -11,6 +11,7 @@ export type SuggestedVerification = {
   verification_mode: "STATIC" | "RUNTIME" | "PERFORMANCE" | "INFRASTRUCTURE";
   execution_support: "SUPPORTED" | "PARTIAL" | "NOT_AVAILABLE";
   limitations: string[];
+  can_execute: boolean;
 };
 export type DiscoveryResult = {
   candidates: SuggestedVerification[];
@@ -31,7 +32,7 @@ function strings(value: unknown): value is string[] {
 function candidate(value: unknown): value is SuggestedVerification {
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
-  return ["id", "name", "category", "reason"].every(key => typeof v[key] === "string") &&
+  return typeof v.can_execute === "boolean" && ["id", "name", "category", "reason"].every(key => typeof v[key] === "string") &&
     ["architecture_subject_ids", "required_evidence", "limitations"].every(key => strings(v[key])) &&
     ["APPLICABLE", "NOT_APPLICABLE", "UNKNOWN"].includes(String(v.applicability)) &&
     ["HIGH", "MEDIUM", "LOW"].includes(String(v.priority)) &&

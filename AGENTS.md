@@ -45,8 +45,9 @@ architecture constraints and runtime behavior. It is not limited to NFRs.
   option IDs. Local validation and all final candidate fields are server-owned.
   Discovery does not execute a verifier or produce Evidence/Verdict.
 - M5 exposes user-triggered Suggested Verifications through a local discovery
-  endpoint and the architecture workspace. Verification execution remains an
-  independent Python entry point; M6 execution integration is not implemented.
+  endpoint and the architecture workspace. M6 adds explicit timeout execution
+  and source-backed results through the local API/UI, reusing the M4 Python core.
+  Execution uses no LLM; all other suggested verifications remain non-executable.
 - General orchestration, requirement compilation and runtime verification remain
   future work. See the milestone plan rather than inventing scaffolding.
 

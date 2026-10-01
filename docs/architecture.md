@@ -26,8 +26,7 @@ analysis → safe static timeout inspection → immutable Evidence → evidence-
 Judge → Verdict + VerificationRun + structured Trace.
 
 Discovery retains its independent Python entry point and now has a thin local
-HTTP/UI adapter. M4 verification remains Python-only; M6 execution integration
-is planned. There is no general orchestrator.
+HTTP/UI adapter. M6 adds a narrow execution/result adapter over the unchanged M4 core. There is no general orchestrator.
 
 ## Package responsibilities
 
@@ -264,8 +263,7 @@ to the local backend; no implicit fixture fallback is permitted.
 
 The backend accepts the two documented localhost browser origins, rejects other
 explicit origins and should remain on loopback. This is not authentication,
-multi-tenant isolation or a production service. There is no verification execution
-endpoint, persistence, GitHub ingestion or runtime executor.
+multi-tenant isolation or a production service. There is no persistence, GitHub ingestion or runtime executor.
 
 ### Suggested Verifications (M5)
 
@@ -280,7 +278,7 @@ OPENAI_API_KEY and VERISYS_DISCOVERY_MODEL; application code never loads dotenv.
 
 The response contains candidates (id, name, category, reason, architecture_subject_ids,
 applicability, priority, required_evidence, verification_mode, execution_support,
-limitations), architecture_id, catalog_version, limitations and input_truncated.
+limitations, can_execute), architecture_id, catalog_version, limitations and input_truncated.
 It excludes provider internals, prompts, option payloads, diagnostics, Evidence and
 Verdict. Repository failures retain analysis errors; configuration errors return
 503/DISCOVERY_CONFIGURATION_MISSING, provider errors 502 (timeout 504)/
@@ -329,3 +327,33 @@ real observations and deterministic judgment where possible. Runtime execution
 requires separate sandbox design. Do not scaffold generalized call graphs, agent
 frameworks, databases, distributed queues or observability integrations merely
 because the roadmap mentions them. Coordinate shared contract changes through PRs.
+
+## Verification execution and result experience (M6)
+
+`POST /api/evaluations/verify` accepts only repository_path, evaluation_id and
+expected_architecture_id. It performs fresh safe analysis and rejects snapshot
+mismatches with 409/ANALYSIS_STALE before resolving or executing a verifier. Only
+the existing catalog/registry timeout verifier is installed. It constructs its own
+requirement/plan, freshly inspects source, collects immutable Evidence and applies
+the existing deterministic Judge. No discovery/provider dependency is involved;
+verification needs no API key. A second architecture ID check prevents publishing a
+run whose independent analysis differs from the requested normalized snapshot.
+This does not make filesystem inspection atomic or hash every source byte.
+
+The narrow result DTO exposes evaluation identity, architecture_id, applicability,
+execution_status, verification_mode, optional verdict_status and verdict evidence
+IDs, policy, deterministic summary/counts/coverage, evidence provenance/observations,
+limitations and factual trace summaries. The projection copies the Judge's recorded
+coverage; it does not judge again. NOT_APPLICABLE retains no Verdict and no percentage.
+Mixed missing/unknown remains VIOLATED with incomplete coverage. Tool exceptions
+return sanitized 500/VERIFICATION_FAILED, never an engineering NOT_VERIFIABLE.
+Unknown/unregistered evaluations return 400/VERIFICATION_UNSUPPORTED; malformed
+requests return 400/VERIFICATION_BAD_REQUEST. Repository failures retain analysis errors.
+
+Suggestions expose can_execute derived from installed catalog/registry capability,
+independent of applicability and execution_support. UNKNOWN/PARTIAL timeout candidates
+can run; other suggestions remain disabled. IDLE/RUNNING/RESULT/ERROR execution
+states block duplicate requests. Reanalysis or new discovery clears old results;
+abort/late-response guards protect the browser, without promising backend cancellation.
+The frontend renders server-owned conclusions and source locations, with separate
+missing/unknown styling and expandable evidence/trace. No excerpts are fabricated.

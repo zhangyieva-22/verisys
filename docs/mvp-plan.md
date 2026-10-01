@@ -93,19 +93,21 @@ request deduplication and invalidation on new analysis are covered by integratio
 tests. Routine backend/frontend validation passes without live credentials.
 No verifier executes and no Evidence/Verdict is generated.
 
-## Planned: M6 — verification execution integration
+## Implemented: M6 — verification execution and result experience
 
 Candidate → registered verifier when available → real Evidence → deterministic
-Judge → Verdict and trace. This revised M6 is execution integration, not the old
-superseded profiling milestone. It requires separate scope approval. Runtime
-verification, general orchestration and additional verifiers remain future work.
+Judge → Verdict and trace → narrow API result → frontend evidence panel.
+User-triggered execution supports only the existing static timeout policy. Fresh
+architecture preconditions, registry-owned capability, request deduplication,
+result invalidation and controlled system errors are covered by deterministic
+API/UI tests. No provider is called during verification. Runtime verification,
+general orchestration and additional verifiers remain future work.
 
 ## MVP acceptance and non-goals
 
 The completed product slice should make it possible to analyze a repository,
 understand source-backed architecture, discover worthwhile evaluations, run the
-supported static policy and inspect real evidence/judgment/trace. M5 connects discovery to the frontend; verification execution/result integration
-is still needed for the full story.
+supported static policy and inspect real evidence/judgment/trace. M5 connects discovery to the frontend; M6 completes execution and source-backed result presentation for the single installed policy.
 
 No runtime results may be inferred from static analysis. No required evidence may
 be replaced with an LLM guess. Unsupported recommendations remain explicit about

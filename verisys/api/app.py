@@ -13,6 +13,9 @@ from verisys.models.architecture import ArchitectureIR
 from verisys.models.base import DomainModel
 from verisys.models.graph import ArchitectureGraph
 from verisys.repository import discover_repository
+from verisys.evaluation.catalog import CATALOG
+from verisys.verification.registry import get_verifier
+from .verification import VerificationResult, project_result
 from verisys.models.enums import Applicability, ExecutionSupport, VerificationMode
 from verisys.evaluation import (DiscoveryError, StructuredGenerationClient, OpenAIClient,
                                 OpenAIConfig, discover_evaluations, normalize_architecture)
@@ -56,6 +59,8 @@ async def local_browser_boundary(request: Request, call_next):
 
 @app.exception_handler(RequestValidationError)
 async def invalid_request(_request: Request, _exception: RequestValidationError):
+    if _request.url.path == "/api/evaluations/verify":
+        return error(400, "VERIFICATION_BAD_REQUEST", "Provide a repository path, evaluation ID and expected architecture ID only.")
     return error(400, "INVALID_REPOSITORY_PATH", "Provide an absolute local repository path.")
 
 
@@ -102,6 +107,7 @@ class SuggestedVerification(DomainModel):
     verification_mode: VerificationMode
     execution_support: ExecutionSupport
     limitations: list[str]
+    can_execute: bool
 
 
 class EvaluationDiscoveryResponse(DomainModel):
@@ -146,7 +152,8 @@ def evaluations_discover(request: EvaluationDiscoveryRequest, client: Structured
         discovered = discover_evaluations(result.architecture, client)
         fields = set(SuggestedVerification.model_fields)
         return EvaluationDiscoveryResponse(
-            candidates=[SuggestedVerification.model_validate(candidate.model_dump(include=fields))
+            candidates=[SuggestedVerification.model_validate({**candidate.model_dump(include=fields),
+                "can_execute": bool(CATALOG[candidate.id].verifier_available and get_verifier(candidate.id) is not None)})
                         for candidate in discovered.candidates],
             architecture_id=discovered.architecture_id,
             catalog_version=discovered.catalog_version,
@@ -161,3 +168,28 @@ def evaluations_discover(request: EvaluationDiscoveryRequest, client: Structured
 @app.exception_handler(DiscoveryError)
 async def configuration_error(_request: Request, exception: DiscoveryError):
     return discovery_error(exception.code)
+
+
+class VerificationRequest(EvaluationDiscoveryRequest):
+    evaluation_id: str = Field(min_length=1, max_length=128, strict=True)
+
+
+@app.post("/api/evaluations/verify", response_model=VerificationResult)
+def evaluations_verify(request: VerificationRequest):
+    result = analyze(AnalyzeRequest(repository_path=request.repository_path))
+    if isinstance(result, JSONResponse):
+        return result
+    if result.architecture_id != request.expected_architecture_id:
+        return error(409, "ANALYSIS_STALE", "The repository changed. Analyze the repository again before verification.")
+    definition = CATALOG.get(request.evaluation_id)
+    verifier = get_verifier(request.evaluation_id)
+    if definition is None or not definition.verifier_available or verifier is None:
+        return error(400, "VERIFICATION_UNSUPPORTED", "No installed verifier is available for this evaluation.")
+    try:
+        run = verifier(request.repository_path)
+        # The verifier independently analyzes fresh input. Do not publish a different snapshot.
+        if normalize_architecture(run.architecture).architecture_id != request.expected_architecture_id:
+            return error(409, "ANALYSIS_STALE", "The repository changed during verification. Analyze the repository again.")
+        return project_result(run, result.architecture_id)
+    except Exception:
+        return error(500, "VERIFICATION_FAILED", "The verification tool could not complete. No engineering verdict is available.")

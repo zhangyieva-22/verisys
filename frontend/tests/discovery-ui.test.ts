@@ -11,7 +11,7 @@ const originalFetch = globalThis.fetch;
 const architectureId = 'a'.repeat(64);
 const props = { repositoryPath: '/projects/agent', architectureId, onAnalyze: () => {} };
 const path = '/projects/agent';
-const base = { id: 'api-latency-v1', name: 'API Latency', category: 'Performance', reason: 'Detected HTTP route.',
+const base = { can_execute: false, id: 'api-latency-v1', name: 'API Latency', category: 'Performance', reason: 'Detected HTTP route.',
   architecture_subject_ids: ['route:fixture'], applicability: 'APPLICABLE', priority: 'MEDIUM',
   required_evidence: ['Executed load-test measurements'], verification_mode: 'PERFORMANCE',
   execution_support: 'NOT_AVAILABLE', limitations: ['No runtime verifier.'] } as const;

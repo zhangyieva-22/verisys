@@ -14,7 +14,7 @@ npm run dev
 Open http://127.0.0.1:3000. Next.js proxies `/api/analyze` to
 `http://127.0.0.1:8000`; set `VERISYS_BACKEND_URL` before starting Next.js to
 change the backend address. Only local paths are supported. No GitHub ingestion,
-repository history, accounts or verification execution is implemented.
+repository history or accounts are implemented. Only the installed static timeout verifier is executable.
 
 System Flow uses `graph.execution_flows`; Dependency View filters the returned
 graph to MODULE + IMPORTS without changing the DTO. Inspectors display actual
@@ -57,3 +57,19 @@ fixture fallback. Suggestions are recommendations only; no verification is run.
 ERROR presentation and blocks duplicate in-flight calls. New analysis invalidates
 suggestions and ignores late responses, including same-path reanalysis. Candidate
 fields remain server-owned; System Flow/Dependency View semantics are unchanged.
+
+## Verification execution (M6)
+
+Suggestions expose server-owned can_execute. Run Verification is available for
+the installed timeout verifier, including UNKNOWN/PARTIAL recommendations; other
+checks remain disabled. `/api/evaluations/verify` is proxied to the same backend
+and sends repository_path, evaluation_id and expected_architecture_id only.
+No model call or provider credential is needed for execution.
+
+The execution client/result panel render the narrow server DTO: policy, separate
+applicability/execution/verdict, Judge counts and definitive coverage when available,
+source-backed evidence and expandable structured trace. UNKNOWN is distinct from
+MISSING; incomplete coverage does not hide a VIOLATED result. Empty applicable
+scope creates no fake Verdict or percentage. IDLE/RUNNING/RESULT/ERROR are separate,
+in-flight executions are deduplicated, new analysis/discovery invalidates results,
+and stale errors require explicit reanalysis. No timeout judgment is computed here.
