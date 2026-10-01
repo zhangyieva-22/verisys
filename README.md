@@ -2,7 +2,7 @@
 
 Architecture-aware engineering verification, currently providing safe local
 Python architecture analysis and a source-grounded architecture workspace.
-Verification execution is a later milestone.
+M4 Core provides static timeout verification; M4.5 Core provides independent, optional LLM evaluation discovery.
 
 ## Local development
 
@@ -90,3 +90,54 @@ Keep the repository stable while analyzing/verifying. Safe reads and content
 hash comparison protect bounded inspection, but do not provide an atomic
 filesystem snapshot. Invalid roots and unexpected internal errors propagate to
 the Python caller rather than being converted into an engineering violation.
+
+
+## M4.5 Core: catalog-bounded evaluation discovery
+
+`verisys.evaluation.discover_evaluations(architecture, client)` accepts an existing
+ArchitectureIR, not a repository path. It does not read repository files, import
+repository modules, invoke verifiers, produce Evidence/Verdict, or change the UI.
+The current HTTP API and Verify button are unchanged.
+
+The LLM selects known evaluation IDs and supplied architecture subject IDs using
+catalog-approved rationale codes. The catalog/server owns semantics, applicability,
+execution support, MEDIUM default priority, required evidence and limitations.
+Verification tools collect Evidence; the deterministic Judge produces Verdict.
+See [the catalog](docs/evaluation-catalog.md#m45-core-discovery-contract).
+
+Live discovery sends a **normalized architecture summary** (relative source
+references, names, routes, tools, declared flows and limitations) to the configured
+OpenAI provider. It does not send raw source, repository root, config values,
+credentials, runtime measurements or verification results. Architecture labels
+remain untrusted data, separate from instructions. The model has no tools.
+Review architecture metadata sensitivity before deliberately enabling live use.
+
+The OpenAI SDK is optional; fake-client discovery and M4 work without it:
+
+```sh
+.venv/bin/python -m pip install -e '.[test,discovery]'
+```
+
+Configure `OPENAI_API_KEY` outside this repository (for example, in your shell),
+then set `VERISYS_DISCOVERY_MODEL` to a model supporting Responses structured
+outputs. No model or universal temperature setting is hardcoded. SDK requests use
+strict schema parsing, no tools, `store=False`, disabled input truncation, a
+30-second timeout, no automatic retries and a 2048-token output budget; timeout
+and output budget are adapter configuration fields.
+
+The live test is **skipped in normal pytest**, requires explicit opt-in and runs
+safe architecture analysis before discovery; it never executes verification:
+
+```sh
+VERISYS_LIVE_DISCOVERY=1 \
+VERISYS_DISCOVERY_MODEL=your-structured-output-model \
+VERISYS_LIVE_REPOSITORY=/absolute/path/to/ecommerce-ai-agent \
+.venv/bin/python -m pytest tests/test_evaluation_live.py -s
+```
+
+There is no implicit fixture fallback. Missing credentials, provider errors,
+refusals, incomplete output and invalid selections raise sanitized DiscoveryError,
+not an empty recommendation list. Valid empty selections succeed. Empty complete
+architecture can skip the provider; empty incomplete/truncated context fails
+explicitly. Provider diagnostics are bounded metadata, not engineering Evidence
+or verification Trace, and never retain raw response text or chain-of-thought.

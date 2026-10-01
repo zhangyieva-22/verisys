@@ -179,7 +179,7 @@ Runtime and performance executors are future extension points.
 
 ## 4. Orchestrator
 
-This describes the target verification lifecycle, not an implemented M2 component. Automatic profiling is added in M6; earlier representative cases use explicit selection.
+This describes the target verification lifecycle, not an implemented M2 component. Automatic profiling is added in M4.5; earlier representative cases use explicit selection.
 
 The Orchestrator owns the lifecycle of a VerificationRun.
 
@@ -277,7 +277,7 @@ The implemented pipeline is:
 
 Local Repository → Safe Repository Discovery → Static Python AST Analysis → ArchitectureIR.
 
-The analyzer supports a bounded set: Python, FastAPI / APIRouter routes, OpenAI, Stripe, Twilio, simple internal import dependencies, source-grounded locations, and explicit limitations for unsupported or ambiguous patterns. It is not a generalized Python static-analysis engine. No verification executor or automatic Evaluation Profiler is implemented yet.
+The analyzer supports a bounded set: Python, FastAPI / APIRouter routes, OpenAI, Stripe, Twilio, simple internal import dependencies, source-grounded locations, and explicit limitations for unsupported or ambiguous patterns. It is not a generalized Python static-analysis engine. M4 Core now provides explicit static OpenAI timeout verification. M4.5 Core adds catalog-bounded LLM evaluation discovery independently of the frontend and HTTP API.
 
 Broader future detection targets, only when actually supported:
 
@@ -426,13 +426,11 @@ If no worker exists:
 
 ### MVP implementation
 
-Planned for M6, after graph projection, frontend visualization, minimal API wiring, representative verification cases and result UI. This delays implementation only; Evaluation Discovery remains part of the canonical product workflow and a core differentiator.
+Implemented independently in M4.5 Core after the stable M4 checkpoint. ArchitectureIR → bounded normalized summary → minimal LLM selection → deterministic validation → EvaluationCandidate[]. No HTTP or frontend discovery integration is included.
 
-The first MVP may use deterministic rules.
+Applicability, execution support, priority, rationale validation and candidate construction use deterministic rules.
 
-An LLM is not required.
-
-This is preferred for the first vertical slice because behavior is reproducible and testable.
+M4.5 uses an optional LLM only for grounded catalog selection. Server validation and candidate fields remain deterministic; fake clients cover routine tests without credentials.
 
 ---
 
@@ -642,7 +640,7 @@ It must not execute repository code.
 
 ## 13. External API Timeout Analyzer
 
-Planned for M4 as the first fully executable verification; it is not part of the completed Architecture Analyzer.
+Implemented in M4 Core as the first fully executable verification; it remains separate from the Architecture Analyzer and evaluation discovery.
 
 This is the first complete verification tool.
 
@@ -914,7 +912,7 @@ M5 displays verification name, separately labeled verdict/applicability/executio
 
 ## 20. First MVP Module Boundaries
 
-Prospective Python boundaries below are not current file inventory or required scaffolding. CLI/reporting are optional; graph projection arrives in M3A, a separate frontend in M3B, and a minimal API adapter in M3C. Verification modules arrive in M4 and evaluation profiling in M6.
+Prospective Python boundaries below are not current file inventory or required scaffolding. CLI/reporting are optional; graph projection arrives in M3A, a separate frontend in M3B, and a minimal API adapter in M3C. Verification modules arrive in M4 and evaluation profiling in M4.5.
 
 A reasonable target Python package structure is:
 
@@ -1001,7 +999,7 @@ The implemented pipeline is:
 
 Local Repository → Safe Repository Discovery → Static Python AST Analysis → ArchitectureIR.
 
-The analyzer supports a bounded set: Python, FastAPI / APIRouter routes, OpenAI, Stripe, Twilio, simple internal import dependencies, source-grounded locations, and explicit limitations for unsupported or ambiguous patterns. It is not a generalized Python static-analysis engine. No verification executor or automatic Evaluation Profiler is implemented yet.
+The analyzer supports a bounded set: Python, FastAPI / APIRouter routes, OpenAI, Stripe, Twilio, simple internal import dependencies, source-grounded locations, and explicit limitations for unsupported or ambiguous patterns. It is not a generalized Python static-analysis engine. M4 Core now provides explicit static OpenAI timeout verification. M4.5 Core adds catalog-bounded LLM evaluation discovery independently of the frontend and HTTP API.
 
 ### Revised implementation order
 
@@ -1012,8 +1010,8 @@ The analyzer supports a bounded set: Python, FastAPI / APIRouter routes, OpenAI,
 5. M3B — Frontend Product Shell + Architecture Visualization
 6. M3C — Minimal Backend/API Wiring
 7. M4 — Golden Verification Cases
-8. M5 — Verification Result UI
-9. M6 — Evaluation Profiler
+8. M4.5 — LLM Evaluation Discovery Core
+9. M5 — Verification Result UI
 
 ### Visible analysis wiring (M3C)
 
@@ -1023,9 +1021,9 @@ Repository → Discovery → Architecture Analyzer → ArchitectureIR → Archit
 
 Repository → Analyze → Visible Architecture → Select architecture component → Choose/launch verification → Execute one real verification → Inspect source-backed evidence → Receive grounded verdict.
 
-External API Timeout Coverage is the hero verification. This visible workflow takes priority over adding many invisible backend capabilities. Automatic evaluation selection arrives in M6; earlier demos use explicitly selected representative cases.
+External API Timeout Coverage is the hero verification. This visible workflow takes priority over adding many invisible backend capabilities. M4.5 Core provides optional LLM selection with deterministic validation; current frontend demos still use explicitly selected representative cases.
 
-External API Timeout Coverage is the first fully executable verification, planned for M4. The preferred golden case is FastAPI with three supported OpenAI call sites: two define supported timeout behavior and one does not. Source-backed evidence yields 2 / 3 coverage (66.7%) and deterministic VIOLATED. The older mixed OpenAI/Stripe/Twilio example remains an alternate fixture.
+External API Timeout Coverage is the first fully executable verification, implemented in M4 Core. The preferred golden case is FastAPI with three supported OpenAI call sites: two define supported timeout behavior and one does not. Source-backed evidence yields 2 / 3 coverage (66.7%) and deterministic VIOLATED. The older mixed OpenAI/Stripe/Twilio example remains an alternate fixture.
 
 API Latency may be relevant, but without runtime evidence the result is NOT_VERIFIABLE. Missing evidence includes a running environment, defined workload, load-test results, and P50/P95/P99 metrics. Never infer latency from source; do not implement k6 yet.
 
@@ -1035,7 +1033,7 @@ No evidence → no conclusive verification claim. Applicability, ExecutionSuppor
 
 ### Canonical final flow
 
-Repository → ArchitectureIR → Evaluation Profiler → EvaluationCandidate[] → VerificationPlan → Tool Execution → Evidence → Deterministic Verdict → Structured Trace. The profiler is implemented in M6 but remains upstream of verification in the canonical product architecture. This path must work without an LLM or API key.
+Repository → ArchitectureIR → Evaluation Profiler → EvaluationCandidate[] → VerificationPlan → Tool Execution → Evidence → Deterministic Verdict → Structured Trace. The profiler is implemented in M4.5 but remains upstream of verification in the canonical product architecture. Static architecture analysis and explicitly selected M4 verification work without an LLM or API key; optional live M4.5 discovery requires a configured provider.
 
 The revised MVP does not require generalized Python static analysis, generalized cross-file symbol resolution, LLM architecture inference, LangGraph, LangSmith, Docker sandboxing, k6 execution, failure injection, Change Planner, automatic code modification, architecture health scores, broad evaluation catalog execution, or generalized runtime verification.
 
@@ -1169,3 +1167,37 @@ MODULE + IMPORTS topology. Flow geometry, branching/self-loop presentation and
 selection live only in UI adapters. Source-defined conditional labels are retained.
 Unproven service/datastore participation is shown under Other detected components,
 without invented edges. This remains an offline snapshot; M3C is not implemented.
+
+### M4.5 Core implementation boundary
+
+`verisys/evaluation` contains a pure normalizer, versioned catalog, minimal
+selection DTO, strict server validator and optional OpenAI adapter. The existing
+ArchitectureIR and ArchitectureGraph semantics and serialization are unchanged.
+Normalization reuses graph projection identities, keeps concrete API calls
+separate from service presence and includes existing flow steps, transitions,
+conditions, candidate tools, source locations and limitations. It creates no
+new connections; MODULE presence does not imply execution. No repository root,
+raw source/config, results, credentials or UI layout enter the provider input.
+
+Input version is `evaluation-discovery-input-v1`. Lists/subjects are canonicalized
+before a SHA-256 hash and generation. Default budgets are 128 subjects, 1024
+objects, 512 characters per repository-derived string and 64 KiB canonical UTF-8
+JSON including the fixed trusted catalog. Catalog text is static server content,
+not governed by the repository-string limit. Whole subjects are omitted when
+over budget; IDs are never shortened. Flows with omitted component/tool references
+are omitted, too. Truncation is explicit and propagates to candidate limitations;
+it never establishes absence. Budgets too small for the fixed envelope fail.
+
+The provider receives trusted instructions separately from structured untrusted
+data, an extra-forbidden output schema (maximum four candidates, sixteen subject
+references per candidate) and no tools. OpenAI uses the optional current SDK's
+`responses.parse(..., text_format=LLMSelections)`. Model configuration is adapter
+owned. Missing key/SDK, timeout/API errors, refusal, incomplete output and invalid
+schema are controlled failures. Local semantic validation remains mandatory.
+
+DiscoveryResult diagnostics contain bounded provider/model/request identifiers,
+versions, input hash, selected IDs, outcome, sanitized failure category, token
+counts and provider request latency. This latency is discovery observability,
+not a runtime system measurement; no Evidence, Verdict or Trace is created.
+Routine tests use fake clients; SDK tests use HTTP mocks; live use is opt-in and
+sends only normalized architecture to the configured external provider.

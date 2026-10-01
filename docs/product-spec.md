@@ -458,7 +458,7 @@ The implemented pipeline is:
 
 Local Repository → Safe Repository Discovery → Static Python AST Analysis → ArchitectureIR.
 
-The analyzer supports a bounded set: Python, FastAPI / APIRouter routes, OpenAI, Stripe, Twilio, simple internal import dependencies, source-grounded locations, and explicit limitations for unsupported or ambiguous patterns. It is not a generalized Python static-analysis engine. No verification executor or automatic Evaluation Profiler is implemented yet.
+The analyzer supports a bounded set: Python, FastAPI / APIRouter routes, OpenAI, Stripe, Twilio, simple internal import dependencies, source-grounded locations, and explicit limitations for unsupported or ambiguous patterns. It is not a generalized Python static-analysis engine. M4 Core now provides explicit static OpenAI timeout verification. M4.5 Core adds catalog-bounded LLM evaluation discovery independently of the frontend and HTTP API.
 
 Implementation order (canonical product workflow unchanged):
 
@@ -469,8 +469,8 @@ Implementation order (canonical product workflow unchanged):
 5. M3B — Frontend Product Shell + Architecture Visualization
 6. M3C — Minimal Backend/API Wiring
 7. M4 — Golden Verification Cases
-8. M5 — Verification Result UI
-9. M6 — Evaluation Profiler
+8. M4.5 — LLM Evaluation Discovery Core
+9. M5 — Verification Result UI
 
 The first runnable MVP supports:
 
@@ -494,11 +494,11 @@ Other evaluations may be recommended but do not need to be executable yet.
 
 ## 10. MVP End-to-End Flow
 
-The following is the completed canonical flow, including automatic Evaluation Discovery in M6. The earlier implementation/demo path uses manual selection of representative cases.
+The following is the completed canonical flow, including automatic Evaluation Discovery in M4.5. The earlier implementation/demo path uses manual selection of representative cases.
 
 Repository → Analyze → Visible Architecture → Select architecture component → Choose/launch verification → Execute one real verification → Inspect source-backed evidence → Receive grounded verdict.
 
-External API Timeout Coverage is the hero verification. This visible workflow takes priority over adding many invisible backend capabilities. Automatic evaluation selection arrives in M6; earlier demos use explicitly selected representative cases.
+External API Timeout Coverage is the hero verification. This visible workflow takes priority over adding many invisible backend capabilities. M4.5 Core provides optional LLM selection with deterministic validation; current frontend demos still use explicitly selected representative cases.
 
 Input:
 
@@ -552,7 +552,7 @@ The missing timeout must reference a real source file and line number.
 
 ## 11. MVP Evaluation Recommendations
 
-Automatic discovery and recommendation is implemented in M6, after the visible architecture and verification flow. The MVP may then discover and recommend evaluations including:
+Automatic discovery and recommendation is implemented in M4.5, after the visible architecture and verification flow. The MVP may then discover and recommend evaluations including:
 
 - External API Timeout Coverage
 - API Latency
@@ -654,7 +654,7 @@ The graph should become a verification navigation surface: select nodes, inspect
 
 M3C connects the existing real repository analysis pipeline to this frontend through a minimal backend/API. CLI, JSON and Markdown remain optional presentation formats; no CLI is required for the next demo. Internal structured objects remain the source of truth.
 
-External API Timeout Coverage is the first fully executable verification, planned for M4. The preferred golden case is FastAPI with three supported OpenAI call sites: two define supported timeout behavior and one does not. Source-backed evidence yields 2 / 3 coverage (66.7%) and deterministic VIOLATED. The older mixed OpenAI/Stripe/Twilio example remains an alternate fixture.
+External API Timeout Coverage is the first fully executable verification, implemented in M4 Core. The preferred golden case is FastAPI with three supported OpenAI call sites: two define supported timeout behavior and one does not. Source-backed evidence yields 2 / 3 coverage (66.7%) and deterministic VIOLATED. The older mixed OpenAI/Stripe/Twilio example remains an alternate fixture.
 
 API Latency may be relevant, but without runtime evidence the result is NOT_VERIFIABLE. Missing evidence includes a running environment, defined workload, load-test results, and P50/P95/P99 metrics. Never infer latency from source; do not implement k6 yet.
 
@@ -666,7 +666,7 @@ No evidence → no conclusive verification claim. Applicability, ExecutionSuppor
 
 ## 15. Golden Acceptance Scenarios
 
-### Scenario A: Architecture-Aware Discovery (M6)
+### Scenario A: Architecture-Aware Discovery (M4.5)
 
 Given a Python API repository containing:
 
@@ -844,3 +844,19 @@ All future capabilities must preserve the same product abstraction:
     → Verification Strategy
     → Real Evidence
     → Verdict
+
+### M4.5 Core responsibility split
+
+Optional LLM evaluation discovery now selects worthwhile known evaluations from
+bounded, source-grounded ArchitectureIR facts. Trusted catalog and server rules
+own evaluation semantics, applicability, execution support, priority, required
+evidence and limitations. The LLM cannot grant capability or generate results.
+Tools collect real Evidence; Judge produces evidence-backed Verdict.
+
+The four initial discovery entries are Timeout Coverage, Retry Safety, API
+Latency and Tool Side-Effect Safety. Only M4 timeout verification is installed.
+Presence-only OpenAI wrappers and unproven tool side effects stay uncertain;
+unsupported recommendations stay explicitly NOT_AVAILABLE. Frontend and HTTP
+discovery integration are not included. Live discovery transmits normalized
+architecture metadata to the configured LLM provider, not raw source or secrets.
+Explicit static M4 verification still works without any model or API key.

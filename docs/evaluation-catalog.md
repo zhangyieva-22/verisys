@@ -28,11 +28,11 @@ The implemented pipeline is:
 
 Local Repository → Safe Repository Discovery → Static Python AST Analysis → ArchitectureIR.
 
-The analyzer supports a bounded set: Python, FastAPI / APIRouter routes, OpenAI, Stripe, Twilio, simple internal import dependencies, source-grounded locations, and explicit limitations for unsupported or ambiguous patterns. It is not a generalized Python static-analysis engine. No verification executor or automatic Evaluation Profiler is implemented yet.
+The analyzer supports a bounded set: Python, FastAPI / APIRouter routes, OpenAI, Stripe, Twilio, simple internal import dependencies, source-grounded locations, and explicit limitations for unsupported or ambiguous patterns. It is not a generalized Python static-analysis engine. M4 Core now provides explicit static OpenAI timeout verification. M4.5 Core adds catalog-bounded LLM evaluation discovery independently of the frontend and HTTP API.
 
-Catalog execution-support labels below describe the completed MVP target, not tools already available at M2. Timeout Coverage becomes executable in M4. Architecture graph projection (M3A), frontend visualization (M3B), and minimal API wiring (M3C) come first; result UI follows in M5 and automatic Evaluation Profiling in M6.
+Catalog execution-support labels below describe the completed MVP target, not tools already available at M2. Timeout Coverage is executable in M4 Core. Architecture graph projection (M3A), frontend visualization (M3B), and minimal API wiring (M3C) come first; result UI follows in M5 and automatic Evaluation Profiling in M4.5.
 
-External API Timeout Coverage is the first fully executable verification, planned for M4. The preferred golden case is FastAPI with three supported OpenAI call sites: two define supported timeout behavior and one does not. Source-backed evidence yields 2 / 3 coverage (66.7%) and deterministic VIOLATED. The older mixed OpenAI/Stripe/Twilio example remains an alternate fixture.
+External API Timeout Coverage is the first fully executable verification, implemented in M4 Core. The preferred golden case is FastAPI with three supported OpenAI call sites: two define supported timeout behavior and one does not. Source-backed evidence yields 2 / 3 coverage (66.7%) and deterministic VIOLATED. The older mixed OpenAI/Stripe/Twilio example remains an alternate fixture.
 
 API Latency may be relevant, but without runtime evidence the result is NOT_VERIFIABLE. Missing evidence includes a running environment, defined workload, load-test results, and P50/P95/P99 metrics. Never infer latency from source; do not implement k6 yet.
 
@@ -93,7 +93,7 @@ Category: Reliability. The implemented, explicitly selected requirement is:
 Scope is the concrete `openai` call families already recognized by ArchitectureIR.
 Stripe, Twilio and ChatOpenAI timeout semantics are outside this grammar and are
 reported explicitly. ChatOpenAI construction is not a concrete API call.
-Automatic Evaluation Profiling remains M6; frontend integration remains M5.
+M4.5 Core now provides optional catalog-bounded LLM selection; frontend discovery integration is not implemented.
 
 Verification mode is STATIC. The tool is `python-static-timeout-v1`.
 A finite positive numeric literal `timeout=30` is CONFIGURED. Absence of an
@@ -796,7 +796,7 @@ The catalog must remain extensible beyond NFRs.
 
 ## 11. Evaluation Selection Rules
 
-The Evaluation Profiler, implemented in M6, should use architecture-aware selection. Earlier demos choose representative cases explicitly; automatic recommendations remain a core product capability.
+The Evaluation Profiler, implemented in M4.5, should use architecture-aware selection. Earlier demos choose representative cases explicitly; automatic recommendations remain a core product capability.
 
 Examples:
 
@@ -936,7 +936,7 @@ M4 must fully execute the first verification:
 
     External API Timeout Coverage
 
-After M6, the first MVP may automatically recommend:
+After M4.5, the first MVP may automatically recommend:
 
     API Latency
     Retry Safety
@@ -971,3 +971,43 @@ An evaluation is useful only if Verisys can answer:
 6. Can the current system actually execute that verification?
 
 If these questions cannot be answered, the evaluation definition is incomplete.
+
+## M4.5 Core discovery contract
+
+The executable discovery catalog is `verisys/evaluation/catalog.py`, version
+`engineering-evaluations-v1`. Broad catalog scenarios elsewhere in this document
+are prospective; M4.5 exposes exactly these four IDs:
+
+- `external-api-timeout-coverage-v1`: STATIC, direct supported OpenAI calls
+  APPLICABLE/SUPPORTED; OpenAI or ChatOpenAI presence without supported concrete
+  calls UNKNOWN/PARTIAL. Installed verifier: the existing M4 entry point.
+- `retry-safety-v1`: RUNTIME, source-declared conditional loop signal,
+  UNKNOWN/NOT_AVAILABLE. A loop does not establish actual retries or side effects.
+- `api-latency-v1`: PERFORMANCE, detected HTTP routes,
+  APPLICABLE/NOT_AVAILABLE. No source-based latency inference.
+- `tool-side-effect-safety-v1`: RUNTIME, source-declared workflow tool candidates,
+  UNKNOWN/NOT_AVAILABLE. No inferred side effects, tool ordering or selection.
+
+All four priorities are server-defined MEDIUM. Required evidence, limitations,
+property/purpose, signal/rationale allowlists and verifier availability are trusted
+catalog configuration. Other entries are not selectable in M4.5.
+
+Minimal structured LLM output contains only `candidates`, each with
+`evaluation_id`, `architecture_subject_ids` and `relevance_reason` (a rationale
+code). Allowed codes are `supported_openai_calls`, `openai_wrapper_presence`,
+`http_api_routes`, `source_declared_retry_loop`, `tool_candidates_in_workflow`.
+The server rejects the entire result for schema extras, duplicate candidates,
+unknown IDs, wrong subject kinds or mismatched rationale signals. It renders
+reasons from validated facts and derives applicability/support/priority itself.
+An unsupported but valid recommendation is retained; it is not a verdict.
+
+Architecture subject IDs are existing graph component IDs or ExecutionFlow IDs,
+never verification evidence IDs. `EvaluationCandidate` gains only independent
+`architecture_subject_ids` and `limitations` lists; its existing
+`related_architecture_evidence_ids` remains unchanged.
+
+Timeout registry lookup describes capability only. Discovery never calls a
+verifier. A later execution stage must collect fresh Evidence and apply M4's
+existing scope-completeness and judgment rules; a discovery candidate cannot
+establish repository-wide timeout coverage. Current unsupported integrations
+remain unsupported; discovery is not a new timeout grammar.

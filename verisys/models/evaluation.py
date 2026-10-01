@@ -18,3 +18,5 @@ class EvaluationCandidate(DomainModel):
     verification_mode: VerificationMode
     execution_support: ExecutionSupport
     related_architecture_evidence_ids: list[str] = Field(default_factory=list)
+    architecture_subject_ids: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
