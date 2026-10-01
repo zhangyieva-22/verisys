@@ -60,6 +60,7 @@ class SkippedItem(DomainModel):
 
 class DiscoveryResult(DomainModel):
     repository_root: Path
+    limits: DiscoveryLimits = Field(default_factory=DiscoveryLimits, frozen=True)
     files: list[Path] = Field(default_factory=list)
     skipped: list[SkippedItem] = Field(default_factory=list)
     truncated: bool = False
@@ -101,7 +102,7 @@ def discover_repository(
     repository_root = Path(root).resolve(strict=True)
     if not repository_root.is_dir():
         raise NotADirectoryError(f"Repository root is not a directory: {repository_root}")
-    result = DiscoveryResult(repository_root=repository_root)
+    result = DiscoveryResult(repository_root=repository_root, limits=limits)
     total_bytes = visited = 0
     pending = [Path(".")]
 

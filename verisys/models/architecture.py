@@ -28,7 +28,14 @@ class APIRoute(DomainModel):
 class ExternalService(DomainModel):
     name: str
     client_library: str | None = None
-    call_sites: list[SourceLocation] = Field(default_factory=list)
+    call_sites: list[SourceLocation] = Field(
+        default_factory=list,
+        description="Concrete supported external API call expressions; locations a later tool may inspect for timeout behavior.",
+    )
+    source_locations: list[SourceLocation] = Field(
+        default_factory=list,
+        description="Locations supporting service presence: imports, client construction, and supported calls. May include call_sites.",
+    )
 
 
 class Dependency(DomainModel):

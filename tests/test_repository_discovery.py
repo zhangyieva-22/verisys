@@ -289,3 +289,12 @@ def test_limits_are_explicit_and_validate():
             DiscoveryLimits(**{field: -1})
         with pytest.raises(ValidationError):
             DiscoveryLimits(**{field: True})
+
+
+def test_effective_limits_are_stored_in_discovery_result(tmp_path):
+    limits = DiscoveryLimits(max_file_bytes=50, max_files=2, max_total_bytes=100, max_entries=10)
+    result = discover_repository(tmp_path, limits=limits)
+    assert result.limits == limits
+    assert type(result).model_validate_json(result.model_dump_json()).limits == limits
+    with pytest.raises(ValidationError):
+        result.limits = DiscoveryLimits()
