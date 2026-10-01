@@ -84,66 +84,57 @@ Applicability and execution support must not be confused with verdict.
 
 ## 3. Reliability
 
-### 3.1 External API Timeout Coverage
+### 3.1 External API Timeout Coverage — M4 Core v1
 
-Category:
+Category: Reliability. The implemented, explicitly selected requirement is:
 
-Reliability
+> All supported OpenAI API call sites must define an explicit per-call timeout.
 
-Purpose:
+Scope is the concrete `openai` call families already recognized by ArchitectureIR.
+Stripe, Twilio and ChatOpenAI timeout semantics are outside this grammar and are
+reported explicitly. ChatOpenAI construction is not a concrete API call.
+Automatic Evaluation Profiling remains M6; frontend integration remains M5.
 
-Determine whether detected external API call sites define bounded timeout behavior.
+Verification mode is STATIC. The tool is `python-static-timeout-v1`.
+A finite positive numeric literal `timeout=30` is CONFIGURED. Absence of an
+explicit per-call keyword is MISSING, even when `OpenAI(timeout=30)` configured
+the client. `None`, zero, negative, boolean and other nonnumeric literals are
+MISSING under this policy. Symbolic expressions and `**kwargs` are UNKNOWN;
+variables are never evaluated. Expanded keywords remain UNKNOWN even alongside
+an explicit timeout. No arbitrary argument values or source dumps are stored.
 
-Applicability:
+This policy does not establish effective runtime timeouts, SDK defaults,
+client-level inheritance, wrapper behavior, or network reliability.
 
-Applicable when supported external network/API calls are detected.
+The pipeline is EngineeringRequirement → VerificationPlan → bounded source
+inspection → immutable STATIC_ANALYSIS Evidence → deterministic Judge → Verdict
+→ VerificationRun / structured Trace. ArchitectureIR remains unchanged.
+Fresh discovery and analysis supply the authoritative scope. Inspection reuses
+discovery limits and safe reads, verifies hashes for every discovered source,
+and matches concrete calls by file, line and UTF-8 byte column. A scope Evidence
+record carries the call manifest and completeness; the judge consumes Evidence
+only and never reads source.
 
-Required evidence:
+Counts satisfy `total = configured + missing + unknown`. Acceptance requires
+`total > 0 AND configured == total AND missing == 0 AND unknown == 0 AND scope_complete`.
 
-- detected external call sites,
-- source locations,
-- timeout configuration for each call site.
+- Any conclusive MISSING → VIOLATED, including mixed unknown cases.
+- No MISSING but any UNKNOWN or incomplete scope → NOT_VERIFIABLE.
+- Nonempty complete scope with all CONFIGURED → VERIFIED.
+- Conclusively no supported OpenAI calls → NOT_APPLICABLE / NOT_RUN, no verdict.
+- Empty incomplete scope → applicability UNKNOWN / NOT_VERIFIABLE.
 
-Verification mode:
+Definitive coverage is available only for nonempty complete scope without
+UNKNOWN observations. The golden example yields 2 configured, 1 missing,
+0 unknown, total 3, 66.7%, VIOLATED. Unknown sites are never counted as missing.
+Architecture limitations conservatively prevent complete-scope VERIFIED or
+NOT_APPLICABLE, without interpreting their prose. Execution support is PARTIAL
+when inspection/scope remains unresolved, separate from COMPLETED execution.
 
-STATIC
-
-MVP execution support:
-
-SUPPORTED
-
-MVP acceptance condition:
-
-    calls_with_timeout == total_supported_external_calls
-
-If all supported external calls have a timeout:
-
-    VERIFIED
-
-If at least one supported external call is missing a timeout:
-
-    VIOLATED
-
-If external calls are detected but the analyzer cannot reliably determine timeout behavior:
-
-    NOT_VERIFIABLE for the ambiguous portion or run,
-    depending on implementation semantics.
-
-The tool must expose limitations rather than silently treating unknown patterns as safe.
-
-Example:
-
-    OpenAI -> timeout present
-    Stripe -> timeout present
-    Twilio -> timeout missing
-
-Observed:
-
-    2 / 3
-
-Verdict:
-
-    VIOLATED
+The filesystem is not an atomic snapshot: newly introduced files, directory
+renames and concurrent writes are not fully excluded. Keep the repository
+stable during inspection. Source-change detection compares analysis/read
+hashes, including initially call-free files, without a second discovery walk.
 
 ---
 

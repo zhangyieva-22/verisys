@@ -2,6 +2,7 @@
 
 import ast
 from pathlib import Path
+from collections.abc import Callable
 
 from verisys.models.architecture import ArchitectureIR
 from verisys.repository.discovery import DiscoveryLimits, DiscoveryResult
@@ -30,6 +31,7 @@ def _known_local_collisions(discovery: DiscoveryResult) -> set[str]:
 
 def analyze_architecture(
     discovery: DiscoveryResult, *, limits: DiscoveryLimits | None = None,
+    on_source: Callable[[Path, bytes], None] | None = None,
 ) -> ArchitectureIR:
     """Inspect only discovered paths. No imports, execution, or file walking.
 
@@ -37,6 +39,8 @@ def analyze_architecture(
     tighten each limit (the minimum of the two configurations is used).
     The combined source byte/file limits are enforced again. Discovery
     omissions and parse/read failures remain explicit limitations.
+    on_source observes safely read bytes for consistency checks; it does not
+    alter ArchitectureIR or permit another filesystem traversal.
     """
     limits = discovery.limits if limits is None else DiscoveryLimits(**{
         name: min(getattr(discovery.limits, name), getattr(limits, name))
@@ -84,6 +88,8 @@ def analyze_architecture(
                 break
             continue
         total_bytes += len(data)
+        if on_source is not None:
+            on_source(relative, data)
         result.languages = ["Python"]
         try:
             tree = ast.parse(data, filename=label)
