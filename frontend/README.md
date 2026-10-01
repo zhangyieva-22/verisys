@@ -41,3 +41,19 @@ npm run typecheck
 npm test
 npm run build
 ```
+
+## Suggested Verifications (M5)
+
+After analysis, Discover Verifications calls `/api/evaluations/discover` through
+the existing Next proxy with repository_path and expected_architecture_id. The
+analysis client retains architecture_id; 409/ANALYSIS_STALE clears suggestions and
+prompts explicit reanalysis without automatic retry. The backend re-analyzes the
+path and uses process provider
+configuration; see root README. Missing configuration is a visible error, not a
+fixture fallback. Suggestions are recommendations only; no verification is run.
+
+`lib/evaluation/discovery-client.ts` mirrors the narrow backend suggestion response;
+`components/evaluation/SuggestedVerifications.tsx` owns IDLE/DISCOVERING/READY/EMPTY/
+ERROR presentation and blocks duplicate in-flight calls. New analysis invalidates
+suggestions and ignores late responses, including same-path reanalysis. Candidate
+fields remain server-owned; System Flow/Dependency View semantics are unchanged.

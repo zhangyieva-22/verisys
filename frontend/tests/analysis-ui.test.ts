@@ -7,7 +7,7 @@ import { demoGraph } from "../lib/architecture/demo";
 import { analysisReducer, emptyAnalysis, analyzeRepository } from "../lib/architecture/analysis-client";
 
 const originalFetch = globalThis.fetch;
-const result = { repository: { name: 'payments-api', path: '/projects/payments-api' }, architecture: {}, graph: demoGraph };
+const result = { architecture_id: 'a'.repeat(64), repository: { name: 'payments-api', path: '/projects/payments-api' }, architecture: {}, graph: demoGraph };
 async function workspace() {
   const { ArchitectureWorkspace } = await import('../components/architecture/ArchitectureGraph');
   return render(createElement(ArchitectureWorkspace));

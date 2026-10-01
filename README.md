@@ -21,10 +21,10 @@ Tool Execution → Evidence → Deterministic Verdict → Structured Trace.
 - M4.5 Core: deterministic eligible discovery options, optional LLM selection of
   option IDs, and strict server-controlled EvaluationCandidate construction.
 
-Discovery and verification are independent Python capabilities. The current UI
-and API expose **architecture analysis only**; suggested evaluations and real
-verification execution are not integrated yet. Runtime verification is not
-implemented. See [the milestone plan](docs/mvp-plan.md).
+The UI/API expose architecture analysis and **Suggested Verifications** (M5).
+After analysis, click Discover Verifications deliberately to request grounded
+recommendations; no paid model call happens automatically. Verification execution
+and runtime verification are not integrated. See [the milestone plan](docs/mvp-plan.md).
 
 ## Local setup
 
@@ -87,7 +87,7 @@ supports Responses structured outputs; the implementation does not hardcode one.
 Existing process environment variables take precedence over `.env`.
 
 **Never commit or push `.env` or credentials.** The blank `.env.example` is safe
-to share. Only the opt-in live test loads project-root `.env`; importing Verisys,
+to share. Only the opt-in live test loads `.env` within application/test code; importing Verisys,
 starting the backend and routine pytest do not load it implicitly.
 
 The live test sends a bounded normalized architecture summary to OpenAI. It sends
@@ -110,6 +110,27 @@ not empty successful recommendations. Opt-in test configuration/setup failures c
 occur before discovery (missing variables or invalid configuration). Live discovery
 never executes verification. See [discovery/provider test guidance](docs/contributing.md#discoveryprovider-tests)
 for optional dependencies needed to run mocked SDK tests without credentials.
+
+## Suggested Verifications backend configuration
+
+Install `.[test,discovery]`. For M5, OPENAI_API_KEY and VERISYS_DISCOVERY_MODEL must
+be in the backend process environment. The application does not load `.env`.
+You may explicitly use Uvicorn's local-development env-file option instead of
+manually exporting credentials (existing process values retain precedence):
+
+```sh
+.venv/bin/python -m uvicorn verisys.api.app:app --host 127.0.0.1 --port 8000 --env-file .env
+```
+
+Analyze a local repository, then click Discover Verifications. This sends bounded
+normalized metadata to the configured provider and returns validated suggestions.
+Missing configuration, provider failures and validation failures are visible errors;
+none becomes fake recommendations. Empty selection is a successful distinct state.
+A new analysis clears prior suggestions. Applicability/support/mode/priority come
+from the server; no Evidence, Verdict or verification execution is implied.
+Discovery compares fresh normalized architecture with the displayed analysis ID.
+A mismatch produces a stale-analysis message; analyze again explicitly. The hash
+covers normalized facts, not every source byte; keep the repository stable. Verification execution is future M6 work.
 
 ## Validation and collaboration
 

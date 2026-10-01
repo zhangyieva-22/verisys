@@ -1,6 +1,6 @@
 "use client";
 
-import { useReducer, useState } from "react";
+import { useReducer, useRef, useState } from "react";
 import { Info, MousePointer2 } from "lucide-react";
 import { initialSelection } from "@/lib/architecture/selection";
 import { analyzeRepository, analysisReducer, emptyAnalysis } from "@/lib/architecture/analysis-client";
@@ -13,9 +13,13 @@ import { ArchitectureInspector } from "./ArchitectureInspector";
 import { SystemFlowCanvas, FlowInspector } from "./SystemFlow";
 
 
+import { SuggestedVerifications } from "../evaluation/SuggestedVerifications";
+
 const emptyGraph: ArchitectureGraph = { nodes: [], edges: [], execution_flows: [], limitations: [] };
 export function ArchitectureWorkspace() {
   const [analysis, dispatch] = useReducer(analysisReducer, emptyAnalysis);
+  const analysisRequest = useRef(0);
+  const [revision, setRevision] = useState(0);
   const [showInput, setShowInput] = useState(false);
   const graph = analysis.result?.graph ?? emptyGraph;
   const repositoryName = analysis.result?.repository.name ?? "No repository selected";
@@ -29,13 +33,15 @@ export function ArchitectureWorkspace() {
   const [inspectedOther, setInspectedOther] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const submit = async (path: string) => {
+    const current = ++analysisRequest.current; setRevision(current);
     dispatch({ type: "start" }); setSelectedId(null); setFlowSelection(null); setInspectedOther(null);
     try {
       const result = await analyzeRepository(path);
+      if (current !== analysisRequest.current) return;
       dispatch({ type: "success", result }); setShowInput(false); setView("system");
       const first = result.graph.execution_flows?.[0]; setFlowId(first?.id); setFlowSelection(first?.trigger ?? null);
       setSelectedId(initialSelection(result.graph));
-    } catch (error) { dispatch({ type: "error", message: error instanceof Error ? error.message : "Repository analysis could not be completed." }); }
+    } catch (error) { if (current !== analysisRequest.current) return; dispatch({ type: "error", message: error instanceof Error ? error.message : "Repository analysis could not be completed." }); }
   };
   const selected = graph.nodes.find(node => node.id === selectedId) ?? null;
   const routes = graph.nodes.filter(node => node.type === "API_ROUTE").length;
@@ -60,6 +66,7 @@ export function ArchitectureWorkspace() {
           <div className="canvas-caption"><MousePointer2 size={13} />{view === "system" ? "Select a step or transition to inspect its source evidence" : "Arrows represent imports · select to inspect"}</div>
         </div>
         {view === "system" && otherComponents.length > 0 && <div className="other-components"><div><strong>Other detected components</strong><span>Participation in this execution flow is not proven.</span></div>{otherComponents.map(node => <button className={inspectedOther === node.id ? "selected" : ""} key={node.id} onClick={() => setInspectedOther(node.id)}>{node.label}<code>{node.subtitle}</code></button>)}</div>}
+        {analysis.status === "READY" && repositoryPath && <SuggestedVerifications key={revision} repositoryPath={repositoryPath} architectureId={analysis.result!.architecture_id} onAnalyze={() => setShowInput(true)} />}
         <footer className="workspace-status"><span><span className="neutral-dot" />{analysis.status === "READY" ? "Real analysis" : analysis.status}</span><span>{view === "system" ? `${execution?.transitions.length ?? 0} source-declared transitions` : `${graph.edges.length} structural dependencies`} · read-only</span></footer>
         {graph.limitations.length > 0 && <details className="graph-limitations"><summary>Analysis limitations ({graph.limitations.length})</summary>{graph.limitations.map(item => <p key={item}>{item}</p>)}</details>}
       </main>

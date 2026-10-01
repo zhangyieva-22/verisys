@@ -30,7 +30,8 @@ An eligible opportunity is not automatically recommended or executed.
 
 M4.5 implements this intelligence core independently: the server builds options
 from existing architecture facts; the LLM selects worthwhile option IDs; local
-validation constructs candidates. Frontend/API discovery integration is future work.
+validation constructs candidates. M5 exposes this via user-triggered Suggested
+Verifications after analysis. This action never executes verification.
 
 ### On-demand verification
 

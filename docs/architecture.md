@@ -12,10 +12,12 @@ Architecture presentation:
 Local repository → Repository Discovery → bounded static AST analysis →
 ArchitectureIR → pure ArchitectureGraph projection → local API → frontend.
 
-Independent evaluation discovery:
+User-triggered evaluation discovery (M5):
 
-ArchitectureIR → normalized subject index → deterministic eligible options →
-optional LLM option selection → strict local validation → EvaluationCandidate[].
+Local repository path → fresh safe server analysis → ArchitectureIR →
+normalized subject index → deterministic eligible options →
+optional LLM option selection → strict local validation → EvaluationCandidate[] →
+Suggested Verifications.
 
 Explicit M4 verification:
 
@@ -23,8 +25,9 @@ Repository + fixed timeout requirement → VerificationPlan → fresh discovery 
 analysis → safe static timeout inspection → immutable Evidence → evidence-only
 Judge → Verdict + VerificationRun + structured Trace.
 
-The latter two are Python entry points. HTTP/API and frontend integration of
-discovery/verification is not implemented. There is no general orchestrator.
+Discovery retains its independent Python entry point and now has a thin local
+HTTP/UI adapter. M4 verification remains Python-only; M6 execution integration
+is planned. There is no general orchestrator.
 
 ## Package responsibilities
 
@@ -50,7 +53,8 @@ selection state stay outside domain DTOs.
 Python `verisys/models/graph.py`, `verisys/models/execution.py` and the response
 models in `verisys/api/app.py` are manually synchronized with
 `frontend/lib/architecture/types.ts` and `frontend/lib/architecture/analysis-client.ts`.
-`frontend/next.config.ts` owns the analysis proxy. Serialized contract changes
+`frontend/lib/evaluation/discovery-client.ts` mirrors the narrow suggestion DTO.
+`frontend/next.config.ts` owns the analysis/discovery proxies. Serialized contract changes
 require coordinated frontend types/client updates and backend/frontend tests;
 there is no contract code generation. The renderer consumes the graph DTO, not IR.
 
@@ -231,7 +235,8 @@ fails explicitly. Diagnostics hold bounded provider/model/request IDs, versions,
 hash, selected IDs, outcome/category, latency and token usage. They retain no raw
 provider text, credentials or chain-of-thought. Provider latency is not runtime Evidence.
 
-Only the opt-in live test loads project-root dotenv with override=False. Routine
+Only the opt-in live test loads project-root dotenv in application/test code, with
+override=False. Explicit Uvicorn --env-file startup may populate process environment. Routine
 tests use fake clients or HTTP mocks; no network/key is required. Importing the
 provider/domain/backend never implicitly loads dotenv or starts generation.
 
@@ -252,14 +257,49 @@ a general cross-object resolver to shared schemas.
 ## Local HTTP boundary
 
 `POST /api/analyze` accepts `{"repository_path": "/absolute/local/path"}` and
-returns repository identity, ArchitectureIR and ArchitectureGraph. Validation and
+returns repository identity, ArchitectureIR, ArchitectureGraph and architecture_id
+from the existing canonical evaluation normalizer. Validation and
 sanitized errors remain in the API adapter. The Next.js proxy forwards requests
 to the local backend; no implicit fixture fallback is permitted.
 
 The backend accepts the two documented localhost browser origins, rejects other
 explicit origins and should remain on loopback. This is not authentication,
-multi-tenant isolation or a production service. There is no discovery/verification
+multi-tenant isolation or a production service. There is no verification execution
 endpoint, persistence, GitHub ingestion or runtime executor.
+
+### Suggested Verifications (M5)
+
+`POST /api/evaluations/discover` accepts repository_path and expected_architecture_id;
+browser-authored IR/candidates and extra fields are rejected. It reuses safe
+server analysis and the existing M4.5 public entry point. The expected ID is only
+a freshness precondition: a mismatch with fresh normalized architecture returns
+409/ANALYSIS_STALE before generation, with no candidates. Browser input never
+replaces authoritative analysis. The dependency
+`discovery_client` constructs the existing OpenAI adapter from process
+OPENAI_API_KEY and VERISYS_DISCOVERY_MODEL; application code never loads dotenv.
+
+The response contains candidates (id, name, category, reason, architecture_subject_ids,
+applicability, priority, required_evidence, verification_mode, execution_support,
+limitations), architecture_id, catalog_version, limitations and input_truncated.
+It excludes provider internals, prompts, option payloads, diagnostics, Evidence and
+Verdict. Repository failures retain analysis errors; configuration errors return
+503/DISCOVERY_CONFIGURATION_MISSING, provider errors 502 (timeout 504)/
+DISCOVERY_PROVIDER_FAILED, and invalid discovery output/context returns
+502/DISCOVERY_VALIDATION_FAILED. Unexpected adapter errors return sanitized
+500/DISCOVERY_FAILED. Successful empty selection is HTTP 200 with candidates [].
+
+The workspace mounts suggestions only after successful analysis. A deliberate
+Discover Verifications click starts one request; ordinary renders never call the
+provider. IDLE/DISCOVERING/READY/EMPTY/ERROR are separate. Starting any new analysis
+unmounts suggestions, aborts the browser request and ignores late responses.
+Abort does not guarantee cancellation of an already-running backend/provider call.
+In-flight clicks are blocked. Discovery sends the displayed analysis ID; stale
+responses clear suggestions and prompt explicit reanalysis without automatic retry.
+The hash identifies bounded normalized architecture facts/options, not every source
+byte; unrepresented changes may leave it unchanged. Filesystem reads are not atomic;
+keep source stable. Successful suggestions match the displayed normalized snapshot.
+No suggestion is a result, and no verifier runs. System Flow/Dependency View
+continue to render only the existing architecture graph.
 
 ## Evaluation extension path
 

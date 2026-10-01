@@ -213,3 +213,31 @@ h2 { font-size: 20px; letter-spacing: -0.5px; font-weight: 600; margin-top: 0; m
 .repository-input .repository-error { color: #a02b35; }
 .repository-input button:disabled { opacity: .55; cursor: wait; }
 .sidebar-repository p { overflow-wrap: anywhere; }
+
+/* Suggested checks are recommendation state, separate from graph/verification. */
+.suggested-verifications { border-top: 1px solid #c4cdd4; padding: 20px 24px; background: #fff; }
+.suggested-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.suggested-heading h2 { font-size: 17px; margin-bottom: 5px; }
+.suggested-heading p, .suggestion p { font-size: 12px; line-height: 1.6; color: #435267; }
+.suggested-heading button { flex-shrink: 0; padding: 9px 12px; font-size: 11px; }
+.suggested-heading button:disabled { opacity: .6; cursor: wait; }
+.suggested-verifications .discovery-note { font-size: 11px; line-height: 1.6; color: #647184; margin: 12px 0; }
+.discovery-error { margin-top: 14px; color: #942f39; font-size: 12px; }
+.discovery-context { display: flex; flex-wrap: wrap; gap: 16px; font-size: 10px; color: #647184; margin: 14px 0; }
+.suggestion { border-top: 1px solid #d8dfe5; padding: 15px 0; }
+.suggestion-title { display: flex; gap: 12px; align-items: center; margin-bottom: 6px; }
+.suggestion-title h3 { font-size: 14px; }
+.suggestion-title > span { font-size: 10px; color: #647184; }
+.suggestion-labels { display: flex; flex-wrap: wrap; gap: 10px 24px; margin: 12px 0; }
+.suggestion-labels dt { font-size: 9px; color: #647184; margin-bottom: 4px; }
+.suggestion-labels dd { font: 10px monospace; color: #334154; }
+.suggestion-labels .applicable, .suggestion-labels .supported { color: #285942; }
+.suggestion-labels .unknown, .suggestion-labels .partial { color: #825e24; }
+.suggestion-labels .not_available, .suggestion-labels .not_applicable { color: #657184; }
+.suggestion details, .discovery-limitations { font-size: 11px; color: #435267; }
+.suggestion summary, .discovery-limitations summary { cursor: pointer; }
+.suggestion-detail { margin-top: 12px; display: flex; flex-direction: column; gap: 7px; }
+.suggestion-detail code { font-size: 10px; overflow-wrap: anywhere; }
+.suggestion-detail ul { padding-left: 18px; line-height: 1.7; }
+.discovery-limitations p { margin-top: 7px; overflow-wrap: anywhere; }
+.discovery-error button { margin-top: 9px; text-decoration: underline; font-size: 12px; }

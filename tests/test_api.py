@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from verisys.api.app import app, AnalyzeResponse
 from verisys.architecture import analyze_architecture, project_architecture_graph
 from verisys.repository import discover_repository
+from verisys.evaluation import normalize_architecture
 
 client = TestClient(app, raise_server_exceptions=False)
 
@@ -18,6 +19,7 @@ def test_success_preserves_current_pipeline_and_no_flow_is_valid(tmp_path):
     data = response.json()
     ir = analyze_architecture(discover_repository(tmp_path))
     assert data['architecture'] == ir.model_dump(mode='json')
+    assert data['architecture_id'] == normalize_architecture(ir).architecture_id
     assert data['graph'] == project_architecture_graph(ir).model_dump(mode='json')
     assert data['graph']['execution_flows'] == []
     assert data['repository'] == {'name': tmp_path.name, 'path': str(tmp_path)}

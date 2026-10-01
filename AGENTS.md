@@ -44,8 +44,9 @@ architecture constraints and runtime behavior. It is not limited to NFRs.
 - M4.5 Core builds deterministic eligible options; an optional LLM selects only
   option IDs. Local validation and all final candidate fields are server-owned.
   Discovery does not execute a verifier or produce Evidence/Verdict.
-- Discovery and verification are independent Python entry points. They are not
-  wired into the frontend or HTTP API. M5 integration is not implemented.
+- M5 exposes user-triggered Suggested Verifications through a local discovery
+  endpoint and the architecture workspace. Verification execution remains an
+  independent Python entry point; M6 execution integration is not implemented.
 - General orchestration, requirement compilation and runtime verification remain
   future work. See the milestone plan rather than inventing scaffolding.
 
@@ -101,8 +102,9 @@ architecture constraints and runtime behavior. It is not limited to NFRs.
 - `.env.example` is a blank public template. Use placeholders only.
 - Never print keys, dump environment variables, or include credentials in logs,
   exceptions, screenshots, test reports or provider diagnostics.
-- Load project-root dotenv only inside the opt-in live test, with override=False.
-  Do not add implicit loading to domain, provider or verification code.
+- Application dotenv loading stays inside the opt-in live test, with override=False.
+  Backend configuration comes from process environment; explicit Uvicorn --env-file
+  is a local startup choice. Do not add implicit domain/provider/verification loading.
 - Before an authorized commit, inspect the complete staged list and diff for
   secrets, generated files, caches and unrelated changes. Never force-add secrets.
 

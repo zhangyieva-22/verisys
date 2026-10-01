@@ -8,8 +8,8 @@ execute one real static policy, and expose evidence-backed judgment.
 
 **Implemented** means the capability exists and has focused validation, not that
 it is available in every interface. **Planned** requires separate authorization.
-This document describes the current checkout, including M4.5 hardening that may
-still await a commit/review. Git history and PRs identify shared checkpoints.
+This document describes the current checkout. Git history and PRs identify
+shared checkpoints.
 
 ## Implemented milestones
 
@@ -82,25 +82,30 @@ latency and tool safety, leaving retry safety unselected. This is smoke-test evi
 for integration, not a deterministic expectation for future model selections or an
 engineering Verdict. Routine tests use fakes/mocks; live testing remains opt-in.
 
-## Planned: M5 — verification experience/integration
+## Implemented: M5 — Suggested Verifications Experience
 
-Not implemented. Scope must be approved before coding. The intended visible slice
-connects grounded recommendations and selected verification to real backend outputs,
-showing separate applicability/support/execution/verdict states, source evidence,
-limitations and trace. Discovery must not execute tools merely because it recommends
-an evaluation. UI must not invent scores, findings or results.
+A user-controlled Discover Verifications action after analysis calls the local
+discovery endpoint with its displayed architecture_id as a freshness precondition.
+Fresh server analysis rejects mismatches before model generation and feeds the unchanged grounded
+M4.5 core. The UI shows validated candidate reasons, applicability, support, mode,
+priority, required evidence and limitations. IDLE/DISCOVERING/READY/EMPTY/ERROR,
+request deduplication and invalidation on new analysis are covered by integration
+tests. Routine backend/frontend validation passes without live credentials.
+No verifier executes and no Evidence/Verdict is generated.
 
-General requirement compilation, richer planning/orchestration, additional verifiers,
-runtime tools and hosted ingestion require their own scoped work. The old M6
-profiling sequence is superseded by implemented M4.5 Core; do not maintain two
-conflicting discovery roadmaps.
+## Planned: M6 — verification execution integration
+
+Candidate → registered verifier when available → real Evidence → deterministic
+Judge → Verdict and trace. This revised M6 is execution integration, not the old
+superseded profiling milestone. It requires separate scope approval. Runtime
+verification, general orchestration and additional verifiers remain future work.
 
 ## MVP acceptance and non-goals
 
 The completed product slice should make it possible to analyze a repository,
 understand source-backed architecture, discover worthwhile evaluations, run the
-supported static policy and inspect real evidence/judgment/trace. Current Python
-cores work independently; frontend integration is still needed for the full story.
+supported static policy and inspect real evidence/judgment/trace. M5 connects discovery to the frontend; verification execution/result integration
+is still needed for the full story.
 
 No runtime results may be inferred from static analysis. No required evidence may
 be replaced with an LLM guess. Unsupported recommendations remain explicit about

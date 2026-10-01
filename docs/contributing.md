@@ -8,8 +8,8 @@ has local setup; [mvp-plan.md](mvp-plan.md) has current milestone status.
 
 Read the product specification and architecture before changing a layer. Inspect
 the implementation/tests rather than assuming a roadmap capability is connected.
-The local UI currently performs architecture analysis; M4 verification and M4.5
-discovery are independent Python cores. M5 integration is not implemented.
+The local UI performs architecture analysis and user-triggered M5 discovery.
+M4 verification remains a Python core; execution integration is planned for M6.
 
 Install dependencies in your own Python environment and use `npm ci` in frontend.
 Analyzed repositories do not need their dependencies installed and must never be
@@ -149,8 +149,10 @@ HEAD must equal `3d38d5ab7fa0f27bd5c28488afa354abaf2577b4`; use a clean checkout
 For architecture smoke testing, start Verisys as described in README and analyze
 this absolute path in the UI. Inspect System Flow, Dependency View, source grounding
 and limitations. This requires no OpenAI key and never executes target code.
-For discovery smoke testing, install `.[test,discovery]` and deliberately run the
-opt-in test above with VERISYS_LIVE_REPOSITORY pointing to this checkout. Discovery
+For core discovery smoke testing, install `.[test,discovery]` and deliberately run
+the opt-in test above with VERISYS_LIVE_REPOSITORY pointing to this checkout.
+For M5 HTTP/UI testing, start the backend with provider configuration in its process
+environment, analyze this checkout and click Discover Verifications once. Discovery
 sends normalized metadata, selects options and validates candidates; no verifier runs.
 
 There is no checked-in snapshot-regeneration script or CLI. The existing public
