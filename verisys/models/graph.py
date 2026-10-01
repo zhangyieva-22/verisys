@@ -6,6 +6,7 @@ from pydantic import Field, JsonValue
 
 from .architecture import SourceLocation
 from .base import DomainModel
+from .execution import ExecutionFlow
 
 
 class ArchitectureNodeType(StrEnum):
@@ -13,6 +14,8 @@ class ArchitectureNodeType(StrEnum):
     API_ROUTE = "API_ROUTE"
     EXTERNAL_SERVICE = "EXTERNAL_SERVICE"
     MODULE = "MODULE"
+    TOOL = "TOOL"
+    DATASTORE = "DATASTORE"
 
 
 class ArchitectureEdgeType(StrEnum):
@@ -39,6 +42,8 @@ class ArchitectureEdge(DomainModel):
 
 
 class ArchitectureGraph(DomainModel):
+    # Separate from structural nodes/edges; no IMPORTS as execution transitions.
+    execution_flows: list[ExecutionFlow] = Field(default_factory=list)
     nodes: list[ArchitectureNode] = Field(default_factory=list)
     edges: list[ArchitectureEdge] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)

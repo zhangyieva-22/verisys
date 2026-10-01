@@ -2,6 +2,10 @@
 from pydantic import ConfigDict, Field
 
 from .base import DomainModel
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .execution import ExecutionFlow
 
 
 class SourceLocation(DomainModel):
@@ -38,6 +42,21 @@ class ExternalService(DomainModel):
     )
 
 
+class ArchitectureTool(DomainModel):
+    """Explicitly decorated function presence, not tool execution."""
+    name: str
+    handler: str
+    module: str
+    source_location: SourceLocation
+
+
+class Datastore(DomainModel):
+    """Source-declared storage usage, not a running database or measured state."""
+    name: str
+    engine: str
+    source_locations: list[SourceLocation] = Field(default_factory=list)
+
+
 class Dependency(DomainModel):
     source_component: str
     target_component: str
@@ -52,6 +71,13 @@ class ArchitectureIR(DomainModel):
     frameworks: list[str] = Field(default_factory=list)
     api_routes: list[APIRoute] = Field(default_factory=list)
     external_services: list[ExternalService] = Field(default_factory=list)
+    tools: list[ArchitectureTool] = Field(default_factory=list)
+    datastores: list[Datastore] = Field(default_factory=list)
+    execution_flows: list["ExecutionFlow"] = Field(default_factory=list)
     dependencies: list[Dependency] = Field(default_factory=list)
     evidence_ids: list[str] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)
+
+# Resolve the execution model after SourceLocation is defined.
+from .execution import ExecutionFlow
+ArchitectureIR.model_rebuild()

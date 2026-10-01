@@ -4,6 +4,8 @@ Supported bindings: direct/aliased imports and simple named client/app/router
 assignments, including within functions. FastAPI decorators require such a
 binding and a literal path. Client calls are limited to the families below.
 Constructors and imports are detection signals, never external call sites.
+M2.5 adds exact ChatOpenAI presence, bare langchain_core.tools.tool decorators,
+and sqlite3.connect presence; wrapper invoke/stream calls remain unsupported.
 No timeout arguments are inspected. Dynamic factories, attribute-held clients,
 re-exports, src-layout resolution, router mounting/prefix composition, and
 cross-file client bindings are outside this milestone.
@@ -16,11 +18,12 @@ import ast
 from pathlib import Path
 
 from verisys.models.architecture import (
-    APIRoute, ArchitectureIR, Dependency, ExternalService, SourceLocation,
+    APIRoute, ArchitectureIR, ArchitectureTool, Datastore, Dependency, ExternalService, SourceLocation,
 )
 
-SERVICES = {"openai": "OpenAI", "stripe": "Stripe", "twilio": "Twilio"}
+SERVICES = {"openai": "OpenAI", "stripe": "Stripe", "twilio": "Twilio", "langchain_openai": "OpenAI"}
 CONSTRUCTORS = {
+    "langchain_openai.ChatOpenAI": "langchain_openai",
     "openai.OpenAI": "openai", "openai.AsyncOpenAI": "openai",
     "stripe.StripeClient": "stripe", "twilio.rest.Client": "twilio",
 }
@@ -162,7 +165,7 @@ class SourceAnalyzer(ast.NodeVisitor):
 
     def service(self, library, node, *, call=False):
         name = SERVICES[library]
-        service = next((item for item in self.result.external_services if item.name == name), None)
+        service = next((item for item in self.result.external_services if item.name == name and item.client_library == library), None)
         if service is None:
             service = ExternalService(name=name, client_library=library)
             self.result.external_services.append(service)
@@ -187,7 +190,7 @@ class SourceAnalyzer(ast.NodeVisitor):
 
     @staticmethod
     def known_binding(symbol):
-        return bool(symbol and (symbol.split(".")[0] in {*SERVICES, "fastapi"}
+        return bool(symbol and (symbol.split(".")[0] in {*SERVICES, "fastapi", "sqlite3", "langchain_core"}
                                 or symbol.startswith(("client:", "route:"))))
 
     def invalidate_attribute(self, target):
@@ -198,7 +201,7 @@ class SourceAnalyzer(ast.NodeVisitor):
 
     def bind_import(self, name, symbol, node):
         root = symbol.split(".")[0]
-        if root in SERVICES and root in self.collisions:
+        if root in {*SERVICES, "sqlite3", "langchain_core"} and root in self.collisions:
             self.bindings[name] = "unresolved:" + name
             self.limit(node, f"Local module/package named {root} is present in discovery; external-library identity is ambiguous.")
             return
@@ -210,7 +213,7 @@ class SourceAnalyzer(ast.NodeVisitor):
         self.bindings[name] = symbol
         if root == "fastapi":
             self.result.frameworks.append("FastAPI")
-        elif root in SERVICES:
+        elif root in SERVICES and (root != "langchain_openai" or symbol == "langchain_openai.ChatOpenAI"):
             self.service(root, node)
 
     def visit_Import(self, node):
@@ -243,6 +246,14 @@ class SourceAnalyzer(ast.NodeVisitor):
             self.limit(node, "Router prefix is not composed; detected route paths are decorator literals.")
         if symbol == "route:.include_router":
             self.limit(node, "Router mounting is not resolved; detected route paths are decorator literals.")
+        if symbol == "sqlite3.connect":
+            store = next((item for item in self.result.datastores if item.engine == "sqlite3"), None)
+            if store is None:
+                store = Datastore(name="SQLite", engine="sqlite3")
+                self.result.datastores.append(store)
+            source = location(self.path, node)
+            if source not in store.source_locations:
+                store.source_locations.append(source)
         if symbol in CONSTRUCTORS:
             self.service(CONSTRUCTORS[symbol], node)
         elif symbol:
@@ -306,6 +317,13 @@ class SourceAnalyzer(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node):
         for decorator in node.decorator_list:
+            if self.qualified(decorator) == "langchain_core.tools.tool":
+                self.result.tools.append(ArchitectureTool(
+                    name=node.name, handler=node.name, module=module_name(self.path),
+                    source_location=location(self.path, node),
+                ))
+            elif isinstance(decorator, ast.Call) and self.qualified(decorator.func) == "langchain_core.tools.tool":
+                self.limit(decorator, "Only bare @tool decorators are supported; decorator factory not classified.")
             if isinstance(decorator, ast.Call):
                 symbol = self.qualified(decorator.func)
                 if symbol and symbol.startswith("route:.") and symbol.rsplit(".", 1)[-1] in HTTP_METHODS:

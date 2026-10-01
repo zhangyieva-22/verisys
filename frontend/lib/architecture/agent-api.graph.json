@@ -1,0 +1,208 @@
+{
+  "nodes": [
+    {
+      "id": "external:OpenAI:openai",
+      "type": "EXTERNAL_SERVICE",
+      "label": "OpenAI",
+      "subtitle": "openai",
+      "source_locations": [
+        {
+          "file": "app/main.py",
+          "line": 12,
+          "column": 0
+        },
+        {
+          "file": "app/main.py",
+          "line": 13,
+          "column": 0
+        },
+        {
+          "file": "app/main.py",
+          "line": 44,
+          "column": 9
+        }
+      ],
+      "metadata": {
+        "call_sites": []
+      }
+    },
+    {
+      "id": "framework:FastAPI",
+      "type": "FRAMEWORK",
+      "label": "FastAPI",
+      "subtitle": null,
+      "source_locations": [],
+      "metadata": {}
+    },
+    {
+      "id": "module:app.kb",
+      "type": "MODULE",
+      "label": "app.kb",
+      "subtitle": null,
+      "source_locations": [],
+      "metadata": {}
+    },
+    {
+      "id": "module:app.main",
+      "type": "MODULE",
+      "label": "app.main",
+      "subtitle": null,
+      "source_locations": [
+        {
+          "file": "app/main.py",
+          "line": 19,
+          "column": 0
+        },
+        {
+          "file": "app/main.py",
+          "line": 21,
+          "column": 0
+        }
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "module:app.storage",
+      "type": "MODULE",
+      "label": "app.storage",
+      "subtitle": null,
+      "source_locations": [],
+      "metadata": {}
+    },
+    {
+      "id": "module:tests.test_kb",
+      "type": "MODULE",
+      "label": "tests.test_kb",
+      "subtitle": null,
+      "source_locations": [
+        {
+          "file": "tests/test_kb.py",
+          "line": 3,
+          "column": 0
+        }
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "module:tests.test_orchestrator",
+      "type": "MODULE",
+      "label": "tests.test_orchestrator",
+      "subtitle": null,
+      "source_locations": [
+        {
+          "file": "tests/test_orchestrator.py",
+          "line": 3,
+          "column": 0
+        },
+        {
+          "file": "tests/test_orchestrator.py",
+          "line": 4,
+          "column": 0
+        }
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "route:GET:%2Fhealth:health_check:app%2Fmain.py:241:1",
+      "type": "API_ROUTE",
+      "label": "GET /health",
+      "subtitle": "health_check",
+      "source_locations": [
+        {
+          "file": "app/main.py",
+          "line": 241,
+          "column": 1
+        }
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "route:POST:%2Fv1%2Fagent%2Frun:run_agent:app%2Fmain.py:495:1",
+      "type": "API_ROUTE",
+      "label": "POST /v1/agent/run",
+      "subtitle": "run_agent",
+      "source_locations": [
+        {
+          "file": "app/main.py",
+          "line": 495,
+          "column": 1
+        }
+      ],
+      "metadata": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "imports:app.main:app.kb",
+      "source": "module:app.main",
+      "target": "module:app.kb",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "app/main.py",
+          "line": 21,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:app.main:app.storage",
+      "source": "module:app.main",
+      "target": "module:app.storage",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "app/main.py",
+          "line": 19,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:tests.test_kb:app.kb",
+      "source": "module:tests.test_kb",
+      "target": "module:app.kb",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "tests/test_kb.py",
+          "line": 3,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:tests.test_orchestrator:app.main",
+      "source": "module:tests.test_orchestrator",
+      "target": "module:app.main",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "tests/test_orchestrator.py",
+          "line": 3,
+          "column": 0
+        },
+        {
+          "file": "tests/test_orchestrator.py",
+          "line": 4,
+          "column": 0
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "app/kb.py:119: For service/route bindings are unsupported; body not inspected.",
+    "app/kb.py:143: Lambda service/route bindings are unsupported; body not inspected.",
+    "app/kb.py:31: With service/route bindings are unsupported; body not inspected.",
+    "app/kb.py:34: ListComp service/route bindings are unsupported; body not inspected.",
+    "app/kb.py:51: ListComp service/route bindings are unsupported; body not inspected.",
+    "app/kb.py:60: For service/route bindings are unsupported; body not inspected.",
+    "app/kb.py:80: SetComp service/route bindings are unsupported; body not inspected.",
+    "app/kb.py:81: SetComp service/route bindings are unsupported; body not inspected.",
+    "app/main.py:230: Try service/route bindings are unsupported; body not inspected.",
+    "app/main.py:265: Try service/route bindings are unsupported; body not inspected.",
+    "app/main.py:413: For service/route bindings are unsupported; body not inspected.",
+    "app/main.py:514: Try service/route bindings are unsupported; body not inspected.",
+    "app/storage.py:94: Try service/route bindings are unsupported; body not inspected."
+  ]
+}

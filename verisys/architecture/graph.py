@@ -71,6 +71,21 @@ def project_architecture_graph(architecture: ArchitectureIR) -> ArchitectureGrap
                                      for loc in _locations(service.call_sites)]},
         ))
 
+    for tool in architecture.tools:
+        loc = tool.source_location
+        add_node(ArchitectureNode(
+            id=_id("tool", tool.module, tool.handler, loc.file, str(loc.line)),
+            type=ArchitectureNodeType.TOOL, label=tool.name, subtitle=tool.module,
+            source_locations=[loc], metadata={"handler": tool.handler, "module": tool.module},
+        ))
+
+    for store in architecture.datastores:
+        add_node(ArchitectureNode(
+            id=_id("datastore", store.name, store.engine),
+            type=ArchitectureNodeType.DATASTORE, label=store.name, subtitle=store.engine,
+            source_locations=_locations(store.source_locations),
+        ))
+
     for dependency in architecture.dependencies:
         if dependency.dependency_type != "import":
             limitations.add(f"Graph omitted unsupported dependency type: {dependency.dependency_type}.")
@@ -92,6 +107,7 @@ def project_architecture_graph(architecture: ArchitectureIR) -> ArchitectureGrap
             source_locations=_locations([dependency.source_location] + (previous.source_locations if previous else [])),
         )
 
-    return ArchitectureGraph(nodes=[nodes[key] for key in sorted(nodes)],
+    return ArchitectureGraph(execution_flows=sorted(
+        [flow.model_copy(deep=True) for flow in architecture.execution_flows], key=lambda flow: flow.id), nodes=[nodes[key] for key in sorted(nodes)],
                              edges=[edges[key] for key in sorted(edges)],
                              limitations=sorted(limitations))

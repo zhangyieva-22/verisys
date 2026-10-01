@@ -1,0 +1,1445 @@
+{
+  "execution_flows": [
+    {
+      "id": "request-flow:src%2Fapi%2Froutes.py:chat:20:execution%3Asrc.agent.graph%3Abuild_graph%3A44",
+      "name": "POST /chat → build_graph",
+      "trigger": "request-flow:src%2Fapi%2Froutes.py:chat:20:execution%3Asrc.agent.graph%3Abuild_graph%3A44:request",
+      "steps": [
+        {
+          "id": "request-flow:src%2Fapi%2Froutes.py:chat:20:execution%3Asrc.agent.graph%3Abuild_graph%3A44:request",
+          "type": "ENTRY",
+          "label": "POST /chat",
+          "component_id": "route:POST:%2Fchat:chat:src%2Fapi%2Froutes.py:20:1",
+          "source_locations": [
+            {
+              "file": "src/api/routes.py",
+              "line": 20,
+              "column": 1
+            },
+            {
+              "file": "src/api/routes.py",
+              "line": 21,
+              "column": 0
+            }
+          ],
+          "candidate_tool_ids": []
+        },
+        {
+          "id": "execution:src.agent.graph:build_graph:44:START",
+          "type": "WORKFLOW",
+          "label": "build_graph · START",
+          "component_id": null,
+          "source_locations": [
+            {
+              "file": "src/agent/graph.py",
+              "line": 47,
+              "column": 15
+            },
+            {
+              "file": "src/agent/graph.py",
+              "line": 74,
+              "column": 11
+            }
+          ],
+          "candidate_tool_ids": []
+        },
+        {
+          "id": "execution:src.agent.graph:build_graph:44:END",
+          "type": "EXIT",
+          "label": "END",
+          "component_id": null,
+          "source_locations": [
+            {
+              "file": "src/agent/graph.py",
+              "line": 11,
+              "column": 0
+            },
+            {
+              "file": "src/agent/graph.py",
+              "line": 72,
+              "column": 4
+            }
+          ],
+          "candidate_tool_ids": []
+        },
+        {
+          "id": "execution:src.agent.graph:build_graph:44:triage",
+          "type": "WORKFLOW_STEP",
+          "label": "triage",
+          "component_id": "module:src.agent.nodes",
+          "source_locations": [
+            {
+              "file": "src/agent/graph.py",
+              "line": 14,
+              "column": 0
+            },
+            {
+              "file": "src/agent/graph.py",
+              "line": 50,
+              "column": 4
+            },
+            {
+              "file": "src/agent/nodes.py",
+              "line": 71,
+              "column": 0
+            }
+          ],
+          "candidate_tool_ids": []
+        },
+        {
+          "id": "execution:src.agent.graph:build_graph:44:tools",
+          "type": "TOOL_EXECUTION",
+          "label": "tools",
+          "component_id": "module:src.agent.nodes",
+          "source_locations": [
+            {
+              "file": "src/agent/graph.py",
+              "line": 14,
+              "column": 0
+            },
+            {
+              "file": "src/agent/graph.py",
+              "line": 51,
+              "column": 4
+            },
+            {
+              "file": "src/agent/nodes.py",
+              "line": 16,
+              "column": 0
+            },
+            {
+              "file": "src/agent/nodes.py",
+              "line": 117,
+              "column": 0
+            },
+            {
+              "file": "src/agent/nodes.py",
+              "line": 148,
+              "column": 16
+            },
+            {
+              "file": "src/agent/nodes.py",
+              "line": 151,
+              "column": 37
+            },
+            {
+              "file": "src/agent/tools.py",
+              "line": 169,
+              "column": 0
+            }
+          ],
+          "candidate_tool_ids": [
+            "tool:src.agent.tools:check_return_eligibility:src%2Fagent%2Ftools.py:132",
+            "tool:src.agent.tools:get_return_policy:src%2Fagent%2Ftools.py:124",
+            "tool:src.agent.tools:initiate_return:src%2Fagent%2Ftools.py:142",
+            "tool:src.agent.tools:lookup_order:src%2Fagent%2Ftools.py:24",
+            "tool:src.agent.tools:lookup_orders_by_email:src%2Fagent%2Ftools.py:50",
+            "tool:src.agent.tools:search_orders:src%2Fagent%2Ftools.py:67",
+            "tool:src.agent.tools:track_shipment:src%2Fagent%2Ftools.py:91"
+          ]
+        },
+        {
+          "id": "execution:src.agent.graph:build_graph:44:response",
+          "type": "WORKFLOW_STEP",
+          "label": "response",
+          "component_id": "module:src.agent.nodes",
+          "source_locations": [
+            {
+              "file": "src/agent/graph.py",
+              "line": 14,
+              "column": 0
+            },
+            {
+              "file": "src/agent/graph.py",
+              "line": 52,
+              "column": 4
+            },
+            {
+              "file": "src/agent/nodes.py",
+              "line": 192,
+              "column": 0
+            }
+          ],
+          "candidate_tool_ids": []
+        },
+        {
+          "id": "request-flow:src%2Fapi%2Froutes.py:chat:20:execution%3Asrc.agent.graph%3Abuild_graph%3A44:return",
+          "type": "EXIT",
+          "label": "Handler return",
+          "component_id": null,
+          "source_locations": [
+            {
+              "file": "src/api/routes.py",
+              "line": 57,
+              "column": 4
+            }
+          ],
+          "candidate_tool_ids": []
+        }
+      ],
+      "transitions": [
+        {
+          "source": "request-flow:src%2Fapi%2Froutes.py:chat:20:execution%3Asrc.agent.graph%3Abuild_graph%3A44:request",
+          "target": "execution:src.agent.graph:build_graph:44:START",
+          "type": "INVOKE",
+          "source_locations": [
+            {
+              "file": "src/agent/graph.py",
+              "line": 11,
+              "column": 0
+            },
+            {
+              "file": "src/agent/graph.py",
+              "line": 44,
+              "column": 0
+            },
+            {
+              "file": "src/agent/graph.py",
+              "line": 47,
+              "column": 15
+            },
+            {
+              "file": "src/agent/graph.py",
+              "line": 74,
+              "column": 11
+            },
+            {
+              "file": "src/agent/graph.py",
+              "line": 78,
+              "column": 0
+            },
+            {
+              "file": "src/api/routes.py",
+              "line": 6,
+              "column": 0
+            },
+            {
+              "file": "src/api/routes.py",
+              "line": 20,
+              "column": 1
+            },
+            {
+              "file": "src/api/routes.py",
+              "line": 50,
+              "column": 13
+            }
+          ],
+          "condition": null
+        },
+        {
+          "source": "execution:src.agent.graph:build_graph:44:START",
+          "target": "execution:src.agent.graph:build_graph:44:triage",
+          "type": "ENTRY",
+          "source_locations": [
+            {
+              "file": "src/agent/graph.py",
+              "line": 55,
+              "column": 4
+            }
+          ],
+          "condition": null
+        },
+        {
+          "source": "execution:src.agent.graph:build_graph:44:triage",
+          "target": "execution:src.agent.graph:build_graph:44:tools",
+          "type": "CONDITIONAL",
+          "source_locations": [
+            {
+              "file": "src/agent/graph.py",
+              "line": 19,
+              "column": 0
+            },
+            {
+              "file": "src/agent/graph.py",
+              "line": 58,
+              "column": 4
+            },
+            {
+              "file": "src/agent/graph.py",
+              "line": 61,
+              "column": 8
+            }
+          ],
+          "condition": "should_use_tools: tools"
+        },
+        {
+          "source": "execution:src.agent.graph:build_graph:44:triage",
+          "target": "execution:src.agent.graph:build_graph:44:response",
+          "type": "CONDITIONAL",
+          "source_locations": [
+            {
+              "file": "src/agent/graph.py",
+              "line": 19,
+              "column": 0
+            },
+            {
+              "file": "src/agent/graph.py",
+              "line": 58,
+              "column": 4
+            },
+            {
+              "file": "src/agent/graph.py",
+              "line": 61,
+              "column": 8
+            }
+          ],
+          "condition": "should_use_tools: response"
+        },
+        {
+          "source": "execution:src.agent.graph:build_graph:44:tools",
+          "target": "execution:src.agent.graph:build_graph:44:tools",
+          "type": "CONDITIONAL",
+          "source_locations": [
+            {
+              "file": "src/agent/graph.py",
+              "line": 27,
+              "column": 0
+            },
+            {
+              "file": "src/agent/graph.py",
+              "line": 65,
+              "column": 4
+            },
+            {
+              "file": "src/agent/graph.py",
+              "line": 68,
+              "column": 8
+            }
+          ],
+          "condition": "after_tools: retry"
+        },
+        {
+          "source": "execution:src.agent.graph:build_graph:44:tools",
+          "target": "execution:src.agent.graph:build_graph:44:response",
+          "type": "CONDITIONAL",
+          "source_locations": [
+            {
+              "file": "src/agent/graph.py",
+              "line": 27,
+              "column": 0
+            },
+            {
+              "file": "src/agent/graph.py",
+              "line": 65,
+              "column": 4
+            },
+            {
+              "file": "src/agent/graph.py",
+              "line": 68,
+              "column": 8
+            }
+          ],
+          "condition": "after_tools: response"
+        },
+        {
+          "source": "execution:src.agent.graph:build_graph:44:response",
+          "target": "execution:src.agent.graph:build_graph:44:END",
+          "type": "NEXT",
+          "source_locations": [
+            {
+              "file": "src/agent/graph.py",
+              "line": 11,
+              "column": 0
+            },
+            {
+              "file": "src/agent/graph.py",
+              "line": 72,
+              "column": 4
+            }
+          ],
+          "condition": null
+        },
+        {
+          "source": "execution:src.agent.graph:build_graph:44:END",
+          "target": "request-flow:src%2Fapi%2Froutes.py:chat:20:execution%3Asrc.agent.graph%3Abuild_graph%3A44:return",
+          "type": "RETURN",
+          "source_locations": [
+            {
+              "file": "src/agent/graph.py",
+              "line": 11,
+              "column": 0
+            },
+            {
+              "file": "src/agent/graph.py",
+              "line": 72,
+              "column": 4
+            },
+            {
+              "file": "src/api/routes.py",
+              "line": 50,
+              "column": 13
+            },
+            {
+              "file": "src/api/routes.py",
+              "line": 57,
+              "column": 4
+            }
+          ],
+          "condition": null
+        }
+      ],
+      "source_locations": [
+        {
+          "file": "src/agent/graph.py",
+          "line": 11,
+          "column": 0
+        },
+        {
+          "file": "src/agent/graph.py",
+          "line": 44,
+          "column": 0
+        },
+        {
+          "file": "src/agent/graph.py",
+          "line": 47,
+          "column": 15
+        },
+        {
+          "file": "src/agent/graph.py",
+          "line": 74,
+          "column": 11
+        },
+        {
+          "file": "src/agent/graph.py",
+          "line": 78,
+          "column": 0
+        },
+        {
+          "file": "src/api/routes.py",
+          "line": 6,
+          "column": 0
+        },
+        {
+          "file": "src/api/routes.py",
+          "line": 20,
+          "column": 1
+        },
+        {
+          "file": "src/api/routes.py",
+          "line": 50,
+          "column": 13
+        }
+      ],
+      "limitations": [
+        "Possible source-declared paths only; conditions, runtime outcomes and exception paths are not evaluated.",
+        "OpenAI factory bindings and business-service/SQLite call chains are outside this bounded extraction."
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "datastore:SQLite:sqlite3",
+      "type": "DATASTORE",
+      "label": "SQLite",
+      "subtitle": "sqlite3",
+      "source_locations": [
+        {
+          "file": "src/services/database.py",
+          "line": 20,
+          "column": 11
+        }
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "external:OpenAI:langchain_openai",
+      "type": "EXTERNAL_SERVICE",
+      "label": "OpenAI",
+      "subtitle": "langchain_openai",
+      "source_locations": [
+        {
+          "file": "src/agent/nodes.py",
+          "line": 13,
+          "column": 0
+        },
+        {
+          "file": "src/agent/nodes.py",
+          "line": 30,
+          "column": 15
+        }
+      ],
+      "metadata": {
+        "call_sites": []
+      }
+    },
+    {
+      "id": "framework:FastAPI",
+      "type": "FRAMEWORK",
+      "label": "FastAPI",
+      "subtitle": null,
+      "source_locations": [],
+      "metadata": {}
+    },
+    {
+      "id": "module:src.agent.graph",
+      "type": "MODULE",
+      "label": "src.agent.graph",
+      "subtitle": null,
+      "source_locations": [
+        {
+          "file": "src/agent/graph.py",
+          "line": 13,
+          "column": 0
+        },
+        {
+          "file": "src/agent/graph.py",
+          "line": 14,
+          "column": 0
+        }
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "module:src.agent.nodes",
+      "type": "MODULE",
+      "label": "src.agent.nodes",
+      "subtitle": null,
+      "source_locations": [
+        {
+          "file": "src/agent/nodes.py",
+          "line": 15,
+          "column": 0
+        },
+        {
+          "file": "src/agent/nodes.py",
+          "line": 16,
+          "column": 0
+        },
+        {
+          "file": "src/agent/nodes.py",
+          "line": 17,
+          "column": 0
+        }
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "module:src.agent.state",
+      "type": "MODULE",
+      "label": "src.agent.state",
+      "subtitle": null,
+      "source_locations": [],
+      "metadata": {}
+    },
+    {
+      "id": "module:src.agent.tools",
+      "type": "MODULE",
+      "label": "src.agent.tools",
+      "subtitle": null,
+      "source_locations": [
+        {
+          "file": "src/agent/tools.py",
+          "line": 9,
+          "column": 0
+        },
+        {
+          "file": "src/agent/tools.py",
+          "line": 10,
+          "column": 0
+        },
+        {
+          "file": "src/agent/tools.py",
+          "line": 11,
+          "column": 0
+        }
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "module:src.api.routes",
+      "type": "MODULE",
+      "label": "src.api.routes",
+      "subtitle": null,
+      "source_locations": [
+        {
+          "file": "src/api/routes.py",
+          "line": 6,
+          "column": 0
+        },
+        {
+          "file": "src/api/routes.py",
+          "line": 7,
+          "column": 0
+        },
+        {
+          "file": "src/api/routes.py",
+          "line": 8,
+          "column": 0
+        },
+        {
+          "file": "src/api/routes.py",
+          "line": 9,
+          "column": 0
+        }
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "module:src.api.schemas",
+      "type": "MODULE",
+      "label": "src.api.schemas",
+      "subtitle": null,
+      "source_locations": [],
+      "metadata": {}
+    },
+    {
+      "id": "module:src.config",
+      "type": "MODULE",
+      "label": "src.config",
+      "subtitle": null,
+      "source_locations": [],
+      "metadata": {}
+    },
+    {
+      "id": "module:src.main",
+      "type": "MODULE",
+      "label": "src.main",
+      "subtitle": null,
+      "source_locations": [
+        {
+          "file": "src/main.py",
+          "line": 10,
+          "column": 0
+        },
+        {
+          "file": "src/main.py",
+          "line": 11,
+          "column": 0
+        },
+        {
+          "file": "src/main.py",
+          "line": 12,
+          "column": 0
+        },
+        {
+          "file": "src/main.py",
+          "line": 13,
+          "column": 0
+        }
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "module:src.observability.langfuse_setup",
+      "type": "MODULE",
+      "label": "src.observability.langfuse_setup",
+      "subtitle": null,
+      "source_locations": [
+        {
+          "file": "src/observability/langfuse_setup.py",
+          "line": 13,
+          "column": 0
+        }
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "module:src.services.database",
+      "type": "MODULE",
+      "label": "src.services.database",
+      "subtitle": null,
+      "source_locations": [],
+      "metadata": {}
+    },
+    {
+      "id": "module:src.services.order_service",
+      "type": "MODULE",
+      "label": "src.services.order_service",
+      "subtitle": null,
+      "source_locations": [
+        {
+          "file": "src/services/order_service.py",
+          "line": 9,
+          "column": 0
+        }
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "module:src.services.returns_service",
+      "type": "MODULE",
+      "label": "src.services.returns_service",
+      "subtitle": null,
+      "source_locations": [
+        {
+          "file": "src/services/returns_service.py",
+          "line": 8,
+          "column": 0
+        }
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "module:src.services.shipping_service",
+      "type": "MODULE",
+      "label": "src.services.shipping_service",
+      "subtitle": null,
+      "source_locations": [
+        {
+          "file": "src/services/shipping_service.py",
+          "line": 8,
+          "column": 0
+        }
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "module:tests.test_agent",
+      "type": "MODULE",
+      "label": "tests.test_agent",
+      "subtitle": null,
+      "source_locations": [
+        {
+          "file": "tests/test_agent.py",
+          "line": 5,
+          "column": 0
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 21,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 31,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 38,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 46,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 53,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 60,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 67,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 74,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 81,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 89,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 96,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 106,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 115,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 122,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 131,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 140,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 154,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 162,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 168,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 175,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 181,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 194,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 200,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 209,
+          "column": 8
+        }
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "route:GET:%2Fhealth:health:src%2Fapi%2Froutes.py:15:1",
+      "type": "API_ROUTE",
+      "label": "GET /health",
+      "subtitle": "health",
+      "source_locations": [
+        {
+          "file": "src/api/routes.py",
+          "line": 15,
+          "column": 1
+        }
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "route:POST:%2Fchat:chat:src%2Fapi%2Froutes.py:20:1",
+      "type": "API_ROUTE",
+      "label": "POST /chat",
+      "subtitle": "chat",
+      "source_locations": [
+        {
+          "file": "src/api/routes.py",
+          "line": 20,
+          "column": 1
+        }
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "tool:src.agent.tools:check_return_eligibility:src%2Fagent%2Ftools.py:132",
+      "type": "TOOL",
+      "label": "check_return_eligibility",
+      "subtitle": "src.agent.tools",
+      "source_locations": [
+        {
+          "file": "src/agent/tools.py",
+          "line": 132,
+          "column": 0
+        }
+      ],
+      "metadata": {
+        "handler": "check_return_eligibility",
+        "module": "src.agent.tools"
+      }
+    },
+    {
+      "id": "tool:src.agent.tools:get_return_policy:src%2Fagent%2Ftools.py:124",
+      "type": "TOOL",
+      "label": "get_return_policy",
+      "subtitle": "src.agent.tools",
+      "source_locations": [
+        {
+          "file": "src/agent/tools.py",
+          "line": 124,
+          "column": 0
+        }
+      ],
+      "metadata": {
+        "handler": "get_return_policy",
+        "module": "src.agent.tools"
+      }
+    },
+    {
+      "id": "tool:src.agent.tools:initiate_return:src%2Fagent%2Ftools.py:142",
+      "type": "TOOL",
+      "label": "initiate_return",
+      "subtitle": "src.agent.tools",
+      "source_locations": [
+        {
+          "file": "src/agent/tools.py",
+          "line": 142,
+          "column": 0
+        }
+      ],
+      "metadata": {
+        "handler": "initiate_return",
+        "module": "src.agent.tools"
+      }
+    },
+    {
+      "id": "tool:src.agent.tools:lookup_order:src%2Fagent%2Ftools.py:24",
+      "type": "TOOL",
+      "label": "lookup_order",
+      "subtitle": "src.agent.tools",
+      "source_locations": [
+        {
+          "file": "src/agent/tools.py",
+          "line": 24,
+          "column": 0
+        }
+      ],
+      "metadata": {
+        "handler": "lookup_order",
+        "module": "src.agent.tools"
+      }
+    },
+    {
+      "id": "tool:src.agent.tools:lookup_orders_by_email:src%2Fagent%2Ftools.py:50",
+      "type": "TOOL",
+      "label": "lookup_orders_by_email",
+      "subtitle": "src.agent.tools",
+      "source_locations": [
+        {
+          "file": "src/agent/tools.py",
+          "line": 50,
+          "column": 0
+        }
+      ],
+      "metadata": {
+        "handler": "lookup_orders_by_email",
+        "module": "src.agent.tools"
+      }
+    },
+    {
+      "id": "tool:src.agent.tools:search_orders:src%2Fagent%2Ftools.py:67",
+      "type": "TOOL",
+      "label": "search_orders",
+      "subtitle": "src.agent.tools",
+      "source_locations": [
+        {
+          "file": "src/agent/tools.py",
+          "line": 67,
+          "column": 0
+        }
+      ],
+      "metadata": {
+        "handler": "search_orders",
+        "module": "src.agent.tools"
+      }
+    },
+    {
+      "id": "tool:src.agent.tools:track_shipment:src%2Fagent%2Ftools.py:91",
+      "type": "TOOL",
+      "label": "track_shipment",
+      "subtitle": "src.agent.tools",
+      "source_locations": [
+        {
+          "file": "src/agent/tools.py",
+          "line": 91,
+          "column": 0
+        }
+      ],
+      "metadata": {
+        "handler": "track_shipment",
+        "module": "src.agent.tools"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "imports:src.agent.graph:src.agent.nodes",
+      "source": "module:src.agent.graph",
+      "target": "module:src.agent.nodes",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "src/agent/graph.py",
+          "line": 14,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:src.agent.graph:src.agent.state",
+      "source": "module:src.agent.graph",
+      "target": "module:src.agent.state",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "src/agent/graph.py",
+          "line": 13,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:src.agent.nodes:src.agent.state",
+      "source": "module:src.agent.nodes",
+      "target": "module:src.agent.state",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "src/agent/nodes.py",
+          "line": 15,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:src.agent.nodes:src.agent.tools",
+      "source": "module:src.agent.nodes",
+      "target": "module:src.agent.tools",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "src/agent/nodes.py",
+          "line": 16,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:src.agent.nodes:src.config",
+      "source": "module:src.agent.nodes",
+      "target": "module:src.config",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "src/agent/nodes.py",
+          "line": 17,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:src.agent.tools:src.services.order_service",
+      "source": "module:src.agent.tools",
+      "target": "module:src.services.order_service",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "src/agent/tools.py",
+          "line": 9,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:src.agent.tools:src.services.returns_service",
+      "source": "module:src.agent.tools",
+      "target": "module:src.services.returns_service",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "src/agent/tools.py",
+          "line": 11,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:src.agent.tools:src.services.shipping_service",
+      "source": "module:src.agent.tools",
+      "target": "module:src.services.shipping_service",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "src/agent/tools.py",
+          "line": 10,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:src.api.routes:src.agent.graph",
+      "source": "module:src.api.routes",
+      "target": "module:src.agent.graph",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "src/api/routes.py",
+          "line": 6,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:src.api.routes:src.agent.state",
+      "source": "module:src.api.routes",
+      "target": "module:src.agent.state",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "src/api/routes.py",
+          "line": 7,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:src.api.routes:src.api.schemas",
+      "source": "module:src.api.routes",
+      "target": "module:src.api.schemas",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "src/api/routes.py",
+          "line": 8,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:src.api.routes:src.observability.langfuse_setup",
+      "source": "module:src.api.routes",
+      "target": "module:src.observability.langfuse_setup",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "src/api/routes.py",
+          "line": 9,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:src.main:src.api.routes",
+      "source": "module:src.main",
+      "target": "module:src.api.routes",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "src/main.py",
+          "line": 10,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:src.main:src.config",
+      "source": "module:src.main",
+      "target": "module:src.config",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "src/main.py",
+          "line": 11,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:src.main:src.observability.langfuse_setup",
+      "source": "module:src.main",
+      "target": "module:src.observability.langfuse_setup",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "src/main.py",
+          "line": 13,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:src.main:src.services.database",
+      "source": "module:src.main",
+      "target": "module:src.services.database",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "src/main.py",
+          "line": 12,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:src.observability.langfuse_setup:src.config",
+      "source": "module:src.observability.langfuse_setup",
+      "target": "module:src.config",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "src/observability/langfuse_setup.py",
+          "line": 13,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:src.services.order_service:src.services.database",
+      "source": "module:src.services.order_service",
+      "target": "module:src.services.database",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "src/services/order_service.py",
+          "line": 9,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:src.services.returns_service:src.services.database",
+      "source": "module:src.services.returns_service",
+      "target": "module:src.services.database",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "src/services/returns_service.py",
+          "line": 8,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:src.services.shipping_service:src.services.database",
+      "source": "module:src.services.shipping_service",
+      "target": "module:src.services.database",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "src/services/shipping_service.py",
+          "line": 8,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:tests.test_agent:src.agent.graph",
+      "source": "module:tests.test_agent",
+      "target": "module:src.agent.graph",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "tests/test_agent.py",
+          "line": 194,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 200,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 209,
+          "column": 8
+        }
+      ]
+    },
+    {
+      "id": "imports:tests.test_agent:src.agent.tools",
+      "source": "module:tests.test_agent",
+      "target": "module:src.agent.tools",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "tests/test_agent.py",
+          "line": 154,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 162,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 168,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 175,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 181,
+          "column": 8
+        }
+      ]
+    },
+    {
+      "id": "imports:tests.test_agent:src.services.database",
+      "source": "module:tests.test_agent",
+      "target": "module:src.services.database",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "tests/test_agent.py",
+          "line": 5,
+          "column": 0
+        }
+      ]
+    },
+    {
+      "id": "imports:tests.test_agent:src.services.order_service",
+      "source": "module:tests.test_agent",
+      "target": "module:src.services.order_service",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "tests/test_agent.py",
+          "line": 21,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 31,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 38,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 46,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 53,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 60,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 67,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 74,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 81,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 89,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 96,
+          "column": 8
+        }
+      ]
+    },
+    {
+      "id": "imports:tests.test_agent:src.services.returns_service",
+      "source": "module:tests.test_agent",
+      "target": "module:src.services.returns_service",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "tests/test_agent.py",
+          "line": 131,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 140,
+          "column": 8
+        }
+      ]
+    },
+    {
+      "id": "imports:tests.test_agent:src.services.shipping_service",
+      "source": "module:tests.test_agent",
+      "target": "module:src.services.shipping_service",
+      "type": "IMPORTS",
+      "source_locations": [
+        {
+          "file": "tests/test_agent.py",
+          "line": 106,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 115,
+          "column": 8
+        },
+        {
+          "file": "tests/test_agent.py",
+          "line": 122,
+          "column": 8
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "run.py:41: Try service/route bindings are unsupported; body not inspected.",
+    "src/agent/graph.py:32: GeneratorExp service/route bindings are unsupported; body not inspected.",
+    "src/agent/nodes.py:135: Try service/route bindings are unsupported; body not inspected.",
+    "src/agent/nodes.py:222: Try service/route bindings are unsupported; body not inspected.",
+    "src/agent/nodes.py:257: GeneratorExp service/route bindings are unsupported; body not inspected.",
+    "src/agent/nodes.py:259: GeneratorExp service/route bindings are unsupported; body not inspected.",
+    "src/agent/nodes.py:278: For service/route bindings are unsupported; body not inspected.",
+    "src/agent/nodes.py:29: Conditional bindings differ; ambiguous bindings are not propagated.",
+    "src/agent/nodes.py:76: For service/route bindings are unsupported; body not inspected.",
+    "src/agent/nodes.py:84: Try service/route bindings are unsupported; body not inspected.",
+    "src/agent/tools.py:32: GeneratorExp service/route bindings are unsupported; body not inspected.",
+    "src/agent/tools.py:58: For service/route bindings are unsupported; body not inspected.",
+    "src/agent/tools.py:75: For service/route bindings are unsupported; body not inspected.",
+    "src/agent/tools.py:99: GeneratorExp service/route bindings are unsupported; body not inspected.",
+    "src/main.py:43: Router mounting is not resolved; detected route paths are decorator literals.",
+    "src/main.py:46: Conditional bindings differ; ambiguous bindings are not propagated.",
+    "src/services/database.py:154: For service/route bindings are unsupported; body not inspected.",
+    "src/services/database.py:229: For service/route bindings are unsupported; body not inspected.",
+    "src/services/database.py:66: Try service/route bindings are unsupported; body not inspected.",
+    "src/services/order_service.py:34: ListComp service/route bindings are unsupported; body not inspected.",
+    "src/services/order_service.py:53: Try service/route bindings are unsupported; body not inspected.",
+    "src/services/order_service.py:63: Try service/route bindings are unsupported; body not inspected.",
+    "src/services/order_service.py:74: Try service/route bindings are unsupported; body not inspected.",
+    "src/services/order_service.py:85: Try service/route bindings are unsupported; body not inspected.",
+    "src/services/returns_service.py:16: Lambda service/route bindings are unsupported; body not inspected.",
+    "src/services/returns_service.py:48: Try service/route bindings are unsupported; body not inspected.",
+    "src/services/returns_service.py:78: Try service/route bindings are unsupported; body not inspected.",
+    "src/services/returns_service.py:98: Try service/route bindings are unsupported; body not inspected.",
+    "src/services/shipping_service.py:36: ListComp service/route bindings are unsupported; body not inspected.",
+    "src/services/shipping_service.py:51: Try service/route bindings are unsupported; body not inspected.",
+    "src/ui/streamlit_app.py:108: For service/route bindings are unsupported; body not inspected.",
+    "src/ui/streamlit_app.py:114: Try service/route bindings are unsupported; body not inspected.",
+    "src/ui/streamlit_app.py:137: For service/route bindings are unsupported; body not inspected.",
+    "src/ui/streamlit_app.py:145: For service/route bindings are unsupported; body not inspected.",
+    "src/ui/streamlit_app.py:155: Conditional bindings differ; ambiguous bindings are not propagated.",
+    "src/ui/streamlit_app.py:159: With service/route bindings are unsupported; body not inspected.",
+    "src/ui/streamlit_app.py:161: With service/route bindings are unsupported; body not inspected.",
+    "src/ui/streamlit_app.py:176: With service/route bindings are unsupported; body not inspected.",
+    "src/ui/streamlit_app.py:178: With service/route bindings are unsupported; body not inspected.",
+    "tests/test_agent.py:43: GeneratorExp service/route bindings are unsupported; body not inspected."
+  ]
+}

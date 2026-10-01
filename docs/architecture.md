@@ -1104,3 +1104,68 @@ TRACE
 PRESENT
 
 If a module mixes several of these responsibilities, reconsider its boundary.
+
+## M2.5 — Bounded Semantic Architecture Detection
+
+This explicitly scoped extension adds exactly three deterministic presence detections:
+
+- Exact `langchain_openai.ChatOpenAI` imports/construction, including aliases,
+  reuse ExternalService(name="OpenAI", client_library="langchain_openai").
+  SDK and wrapper library identities remain separate. Constructors are presence
+  locations, not API call_sites. Wrapper invoke/stream/factory resolution and
+  timeout semantics are not implemented.
+- Bare `@tool` resolving to `langchain_core.tools.tool` (including aliases)
+  produces ArchitectureTool(name, handler, module, source_location). The location
+  points to the function definition. Decorator factories are explicitly unsupported.
+- An explicitly resolved `sqlite3.connect` expression produces Datastore
+  (name="SQLite", engine="sqlite3", source_locations). No database path, tables,
+  active connection, or measured storage state is inferred.
+
+Existing scope/rebinding, local-library ambiguity and safe-read rules still apply.
+Loops/try/with and other unsupported scopes remain limitations. Discovery-based
+collision checks also cover these supported library names, without import resolution.
+ArchitectureIR.tools/datastores use isolated default lists. Graph projection adds
+TOOL/DATASTORE nodes, with source-backed identities and metadata; new presence
+facts create no edges. No LangGraph reconstruction, Langfuse detection, router
+prefix composition, generalized decorator/database/call-graph analysis, execution,
+verification or M3C wiring is added.
+
+### M2.6 — source-declared execution flows
+
+Architecture components, structural dependencies, and execution flows are three
+separate concepts. `ArchitectureIR.execution_flows` and
+`ArchitectureGraph.execution_flows` carry `ExecutionFlow` objects; the existing
+component nodes and IMPORTS edges remain unchanged. These are architecture facts,
+not Verification Evidence, a verification Trace, runtime outcomes, or results.
+Each step and transition requires real source locations. Candidate tool IDs
+reference component nodes; they represent a candidate set, never execution order
+or per-request selection.
+
+The extractor reuses safely read, bounded, parsed ASTs. Its finite grammar supports
+an explicitly imported `langgraph.graph.StateGraph`, one named factory with a
+simple local graph assignment, literal named node registrations, explicit entry,
+`add_edge`, literal `add_conditional_edges` mappings with named condition functions,
+and a direct `return graph.compile()`. START is the workflow boundary; END is an
+explicit terminal. Unsupported dynamic declarations fail closed. Conditions are
+named, not evaluated. Handler identities may use one direct import to an existing,
+unambiguous discovered module; no arbitrary call traversal or re-export resolution
+is performed.
+
+One direct FastAPI handler assignment invoking an explicitly imported module-level
+binding initialized by that proven local factory may establish a request entry.
+Its proof retains route declaration, import, invoke, StateGraph import/construction,
+factory compile and exported binding locations. A later direct return consuming
+that unchanged result can represent the normal handler return after END. Exception
+paths and actual successful execution are not established.
+
+Tool candidates support only a directly imported literal tool list/tuple iterated
+in the registered handler with an explicit loop-variable `.invoke`. Dynamic tool
+names, collection mutation/rebinding and nested function capture are unsupported.
+No tools are ordered or chosen by the analyzer. OpenAI helper factories and
+business service / SQLite calls are not linked into this flow.
+
+Frontend defaults to System Flow and keeps Dependency View for the original
+MODULE + IMPORTS topology. Flow geometry, branching/self-loop presentation and
+selection live only in UI adapters. Source-defined conditional labels are retained.
+Unproven service/datastore participation is shown under Other detected components,
+without invented edges. This remains an offline snapshot; M3C is not implemented.

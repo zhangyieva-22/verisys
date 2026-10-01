@@ -22,9 +22,9 @@ def _known_local_collisions(discovery: DiscoveryResult) -> set[str]:
     for path in paths:
         if path.is_absolute() or ".." in path.parts:
             continue
-        if path.suffix == ".py" and path.stem in SERVICES:
+        if path.suffix == ".py" and path.stem in {*SERVICES, "sqlite3", "langchain_core", "langgraph"}:
             collisions.add(path.stem)
-        collisions.update(part for part in path.parts if part in SERVICES)
+        collisions.update(part for part in path.parts if part in {*SERVICES, "sqlite3", "langchain_core", "langgraph"})
     return collisions
 
 
@@ -65,6 +65,7 @@ def analyze_architecture(
         modules.pop(name)
         result.limitations.append(f"Ambiguous local module name: {name}; imports will not be resolved.")
 
+    parsed = {}
     total_bytes = 0
     collisions = _known_local_collisions(discovery)
     for index, relative in enumerate(paths):
@@ -90,18 +91,26 @@ def analyze_architecture(
             line = getattr(error, "lineno", None)
             result.limitations.append(f"{label}: Python parse failed ({type(error).__name__}, line {line}).")
             continue
+        parsed[relative] = tree
         try:
             collect_dependencies(tree, relative, modules, ambiguous, result)
             SourceAnalyzer(relative, modules, ambiguous, result, collisions=collisions).visit(tree)
         except RecursionError:
             result.limitations.append(f"{label}: AST traversal depth exceeded; file only partially inspected.")
 
+    from .execution_flow import extract_execution_flows
+    extract_execution_flows(parsed, result, collisions, ambiguous)
+
     result.frameworks = sorted(set(result.frameworks))
     result.api_routes.sort(key=lambda route: (
         route.source_location.file, route.source_location.line, route.source_location.column or 0,
         route.method, route.path, route.handler,
     ))
-    result.external_services.sort(key=lambda service: service.name)
+    result.external_services.sort(key=lambda service: (service.name, service.client_library or ""))
+    result.tools.sort(key=lambda tool: (tool.module, tool.source_location.line, tool.name))
+    result.datastores.sort(key=lambda store: (store.name, store.engine))
+    for store in result.datastores:
+        store.source_locations.sort(key=lambda loc: (loc.file, loc.line, loc.column or 0))
     for service in result.external_services:
         for locations in (service.source_locations, service.call_sites):
             locations.sort(key=lambda location: (location.file, location.line, location.column or 0))

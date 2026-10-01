@@ -161,7 +161,7 @@ def test_defaults_and_empty_projection():
 
 
 @pytest.mark.parametrize("model, kwargs", [
-    (ArchitectureNode, dict(id="x", type="DATASTORE", label="x")),
+    (ArchitectureNode, dict(id="x", type="QUEUE", label="x")),
     (ArchitectureNode, dict(id="x", type="MODULE", label="x", color="red")),
     (ArchitectureEdge, dict(id="x", source="a", target="b", type="GUESSED")),
 ])
