@@ -4,6 +4,10 @@ from .enums import (
     Applicability, EvidenceType, ExecutionStatus, ExecutionSupport,
     TraceEventType, VerdictStatus, VerificationMode,
 )
+from .graph import (
+    ArchitectureGraph, ArchitectureNode, ArchitectureEdge,
+    ArchitectureNodeType, ArchitectureEdgeType,
+)
 from .evaluation import EvaluationCandidate
 from .evidence import Evidence
 from .requirement import EngineeringRequirement
@@ -16,4 +20,6 @@ __all__ = [
     "TraceEventType", "VerdictStatus", "VerificationMode", "EvaluationCandidate",
     "Evidence", "EngineeringRequirement", "TraceEvent", "Verdict",
     "VerificationPlan", "VerificationRun",
+    "ArchitectureGraph", "ArchitectureNode", "ArchitectureEdge",
+    "ArchitectureNodeType", "ArchitectureEdgeType",
 ]
