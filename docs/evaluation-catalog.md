@@ -20,6 +20,30 @@ The core question is:
 
 ---
 
+## Current implementation and sequencing
+
+M0 Domain Models, M1 Safe Repository Discovery, and M2 Architecture Analyzer are COMPLETE.
+
+The implemented pipeline is:
+
+Local Repository → Safe Repository Discovery → Static Python AST Analysis → ArchitectureIR.
+
+The analyzer supports a bounded set: Python, FastAPI / APIRouter routes, OpenAI, Stripe, Twilio, simple internal import dependencies, source-grounded locations, and explicit limitations for unsupported or ambiguous patterns. It is not a generalized Python static-analysis engine. No verification executor or automatic Evaluation Profiler is implemented yet.
+
+Catalog execution-support labels below describe the completed MVP target, not tools already available at M2. Timeout Coverage becomes executable in M4. Architecture graph projection (M3A), frontend visualization (M3B), and minimal API wiring (M3C) come first; result UI follows in M5 and automatic Evaluation Profiling in M6.
+
+External API Timeout Coverage is the first fully executable verification, planned for M4. The preferred golden case is FastAPI with three supported OpenAI call sites: two define supported timeout behavior and one does not. Source-backed evidence yields 2 / 3 coverage (66.7%) and deterministic VIOLATED. The older mixed OpenAI/Stripe/Twilio example remains an alternate fixture.
+
+API Latency may be relevant, but without runtime evidence the result is NOT_VERIFIABLE. Missing evidence includes a running environment, defined workload, load-test results, and P50/P95/P99 metrics. Never infer latency from source; do not implement k6 yet.
+
+Retry Safety may be relevant for Stripe or another side-effecting external call. Explain the required strategy and missing evidence, but failure injection/runtime retry execution is unavailable. Do not claim it was verified; a requested verification without sufficient evidence is NOT_VERIFIABLE.
+
+No evidence → no conclusive verification claim. Applicability, ExecutionSupport, ExecutionStatus, and VerdictStatus remain separate. An applicable evaluation can have execution support NOT_AVAILABLE, execution status NOT_RUN, and verdict NOT_VERIFIABLE; an unstarted case need not have a verdict.
+
+Architecture diagrams in catalog examples illustrate relevance scenarios. They do not authorize graph edges: relationships must already have source-backed support in ArchitectureIR.
+
+---
+
 ## 2. Evaluation Model
 
 Each catalog entry should conceptually define:
@@ -781,7 +805,7 @@ The catalog must remain extensible beyond NFRs.
 
 ## 11. Evaluation Selection Rules
 
-The Evaluation Profiler should use architecture-aware selection.
+The Evaluation Profiler, implemented in M6, should use architecture-aware selection. Earlier demos choose representative cases explicitly; automatic recommendations remain a core product capability.
 
 Examples:
 
@@ -906,10 +930,10 @@ Prefer explicit evaluation results:
     NOT_VERIFIABLE
 
     Worker Recovery
-    NOT_APPLICABLE
+    Applicability: NOT_APPLICABLE
 
     Circular Dependencies
-    measured: 0 detected
+    Execution support: NOT_AVAILABLE
 
 Each result should remain independently inspectable.
 
@@ -917,11 +941,11 @@ Each result should remain independently inspectable.
 
 ## 14. MVP Catalog Scope
 
-The first MVP must fully execute:
+M4 must fully execute the first verification:
 
     External API Timeout Coverage
 
-The first MVP may recommend:
+After M6, the first MVP may automatically recommend:
 
     API Latency
     Retry Safety

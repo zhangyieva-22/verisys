@@ -50,7 +50,7 @@ Primary domain objects:
 - TraceEvent
 - VerificationRun
 
-Markdown, JSON, CLI output, Mermaid diagrams, and future UI are renderers over these objects.
+Markdown, JSON, CLI output, Mermaid diagrams, and the planned MVP UI are renderers over these objects.
 
 ---
 
@@ -109,7 +109,7 @@ Normal Python control flow is preferred for the first vertical slice.
 
 ## 3. High-Level Architecture
 
-Conceptually:
+Long-term conceptual architecture, not current implementation status or milestone order:
 
     Repository / Requirement
              |
@@ -178,6 +178,8 @@ Runtime and performance executors are future extension points.
 ---
 
 ## 4. Orchestrator
+
+This describes the target verification lifecycle, not an implemented M2 component. Automatic profiling is added in M6; earlier representative cases use explicit selection.
 
 The Orchestrator owns the lifecycle of a VerificationRun.
 
@@ -253,7 +255,7 @@ At minimum:
 
 Repository content must always be treated as untrusted data.
 
-Repository ingestion must not execute source code.
+Repository ingestion must not execute source code. Completed discovery skips all child symlinks and stores effective DiscoveryLimits. Analysis reuses those limits by default; explicit analyzer overrides can only tighten them. Safe reads revalidate containment, regular-file status and size, and constrain ingestion by remaining aggregate budget. OS errors use sanitized reason categories; filesystem races remain a documented limitation.
 
 ---
 
@@ -267,9 +269,17 @@ The goal is not to write an architecture essay.
 
 The goal is to create machine-readable system understanding that downstream verification can consume.
 
-### MVP detection targets
+### Completed M2 detection scope
 
-Where possible:
+M0 Domain Models, M1 Safe Repository Discovery, and M2 Architecture Analyzer are COMPLETE.
+
+The implemented pipeline is:
+
+Local Repository → Safe Repository Discovery → Static Python AST Analysis → ArchitectureIR.
+
+The analyzer supports a bounded set: Python, FastAPI / APIRouter routes, OpenAI, Stripe, Twilio, simple internal import dependencies, source-grounded locations, and explicit limitations for unsupported or ambiguous patterns. It is not a generalized Python static-analysis engine. No verification executor or automatic Evaluation Profiler is implemented yet.
+
+Broader future detection targets, only when actually supported:
 
 - Python modules
 - imports
@@ -301,7 +311,7 @@ Example:
 
 ArchitectureIR is the structured representation of the analyzed software system.
 
-Suggested conceptual schema:
+Long-term conceptual schema, not a claim that M2 extracts every listed concept:
 
     ArchitectureIR
       repository
@@ -340,12 +350,14 @@ Example:
 
 ### ExternalService
 
-May include:
+Current fields include:
 
     name
     client_library
     call_sites[]
-    source_evidence[]
+    source_locations[]
+
+source_locations supports observed service presence and may include imports, client construction and supported calls. call_sites contains concrete supported external API call expressions: these are the locations a later timeout verification tool may inspect. Neither field implies timeout coverage or route-to-service relationships.
 
 ### Dependency
 
@@ -414,6 +426,8 @@ If no worker exists:
 
 ### MVP implementation
 
+Planned for M6, after graph projection, frontend visualization, minimal API wiring, representative verification cases and result UI. This delays implementation only; Evaluation Discovery remains part of the canonical product workflow and a core differentiator.
+
 The first MVP may use deterministic rules.
 
 An LLM is not required.
@@ -424,7 +438,7 @@ This is preferred for the first vertical slice because behavior is reproducible 
 
 ## 9. EvaluationCandidate
 
-Suggested conceptual schema:
+Long-term conceptual schema, not a claim that M2 extracts every listed concept:
 
     EvaluationCandidate
       id
@@ -627,6 +641,8 @@ It must not execute repository code.
 ---
 
 ## 13. External API Timeout Analyzer
+
+Planned for M4 as the first fully executable verification; it is not part of the completed Architecture Analyzer.
 
 This is the first complete verification tool.
 
@@ -874,33 +890,33 @@ This object should make the entire result auditable.
 
 ## 19. Presentation Layer
 
-Presentation is downstream from verification state.
+Architecture presentation projects ArchitectureIR; verification presentation renders structured verification state. Neither may create unsupported facts or results.
 
-The first MVP may render:
+ArchitectureIR → ArchitectureGraph → Frontend graph renderer.
 
-- CLI output
-- Markdown report
-- JSON output
+ArchitectureGraph is a deterministic presentation/projection layer. ArchitectureIR remains the source of truth; projection must not perform another round of architecture inference.
 
-A future web UI may render:
+Initial node types may include FRAMEWORK, API_ROUTE, EXTERNAL_SERVICE, and MODULE. DATASTORE, QUEUE, and WORKER may be added only when ArchitectureIR actually supports them. Edge types may include CONTAINS, IMPORTS, and CALLS, but every relationship must have source-backed support in ArchitectureIR.
 
-- architecture summary
-- recommended evaluation cards
-- verification progress
-- evidence
-- verdict
-- trace
-- improvement plan
+Never connect an API route to OpenAI merely because both exist. Current service call locations do not establish route-to-service relationships. Omit any edge the IR cannot prove; never invent edges for visual completeness.
 
-Mermaid diagrams are optional presentation artifacts.
+The planned frontend uses Next.js, TypeScript, Tailwind, @xyflow/react / React Flow, and Lucide icons where useful. M3B may use clearly labeled fixture/mock ArchitectureGraph data before M3C connects real analysis. Mock data must never be presented as real analysis or verification.
 
-They must not become a required internal representation.
+Use modern developer tools such as CodeRabbit only as inspiration: clean, dense, restrained, developer-focused, evidence-first, code-centric, with clear status hierarchy. Do not copy branding, assets, exact layouts, wording, or proprietary visual elements.
+
+The workspace concept is navigation/repository context on the left, architecture graph/primary workspace in the center, and selected-node inspector/verification details on the right. Prioritize one convincing workflow over many pages.
+
+The graph should become a verification navigation surface: select nodes, inspect architecture facts, source locations and concrete call sites, choose/launch verification cases, and view evidence and verdicts. For example, an OpenAI node may show three source-backed calls at app/services/llm.py:42, :67, and :81, then offer External API Timeout Coverage. These locations are illustrative until backed by actual analysis.
+
+M5 displays verification name, separately labeled verdict/applicability/execution support/execution status, concise explanation, evidence, sources, missing evidence, limitations and structured trace where available. Timeout Coverage is the first polished result. CLI, Markdown, JSON and Mermaid remain optional renderers. Change planning is outside this MVP.
 
 ---
 
 ## 20. First MVP Module Boundaries
 
-A reasonable initial Python package structure is:
+Prospective Python boundaries below are not current file inventory or required scaffolding. CLI/reporting are optional; graph projection arrives in M3A, a separate frontend in M3B, and a minimal API adapter in M3C. Verification modules arrive in M4 and evaluation profiling in M6.
+
+A reasonable target Python package structure is:
 
     verisys/
       __init__.py
@@ -979,35 +995,49 @@ This keeps stages independently testable.
 
 ## 22. MVP Execution Path
 
-The first implemented vertical slice should be:
+M0 Domain Models, M1 Safe Repository Discovery, and M2 Architecture Analyzer are COMPLETE.
 
-    CLI
-     ↓
-    RepositoryDiscovery
-     ↓
-    ArchitectureAnalyzer
-     ↓
-    ArchitectureIR
-     ↓
-    EvaluationProfiler
-     ↓
-    TimeoutCoverage EvaluationCandidate
-     ↓
-    VerificationPlanner
-     ↓
-    TimeoutAnalyzer
-     ↓
-    Evidence[]
-     ↓
-    DeterministicJudge
-     ↓
-    Verdict
-     ↓
-    Trace[]
-     ↓
-    CLI / Markdown Renderer
+The implemented pipeline is:
 
-This entire path must work without an LLM or API key.
+Local Repository → Safe Repository Discovery → Static Python AST Analysis → ArchitectureIR.
+
+The analyzer supports a bounded set: Python, FastAPI / APIRouter routes, OpenAI, Stripe, Twilio, simple internal import dependencies, source-grounded locations, and explicit limitations for unsupported or ambiguous patterns. It is not a generalized Python static-analysis engine. No verification executor or automatic Evaluation Profiler is implemented yet.
+
+### Revised implementation order
+
+1. M0 — Domain Models — COMPLETE
+2. M1 — Safe Repository Discovery — COMPLETE
+3. M2 — Architecture Analyzer — COMPLETE
+4. M3A — Architecture Graph Projection — NEXT
+5. M3B — Frontend Product Shell + Architecture Visualization
+6. M3C — Minimal Backend/API Wiring
+7. M4 — Golden Verification Cases
+8. M5 — Verification Result UI
+9. M6 — Evaluation Profiler
+
+### Visible analysis wiring (M3C)
+
+Repository → Discovery → Architecture Analyzer → ArchitectureIR → ArchitectureGraph → Frontend. Keep API wiring small and preserve discovery limits, safe-read checks and explicit limitations.
+
+### Preferred verification demo (M4–M5)
+
+Repository → Analyze → Visible Architecture → Select architecture component → Choose/launch verification → Execute one real verification → Inspect source-backed evidence → Receive grounded verdict.
+
+External API Timeout Coverage is the hero verification. This visible workflow takes priority over adding many invisible backend capabilities. Automatic evaluation selection arrives in M6; earlier demos use explicitly selected representative cases.
+
+External API Timeout Coverage is the first fully executable verification, planned for M4. The preferred golden case is FastAPI with three supported OpenAI call sites: two define supported timeout behavior and one does not. Source-backed evidence yields 2 / 3 coverage (66.7%) and deterministic VIOLATED. The older mixed OpenAI/Stripe/Twilio example remains an alternate fixture.
+
+API Latency may be relevant, but without runtime evidence the result is NOT_VERIFIABLE. Missing evidence includes a running environment, defined workload, load-test results, and P50/P95/P99 metrics. Never infer latency from source; do not implement k6 yet.
+
+Retry Safety may be relevant for Stripe or another side-effecting external call. Explain the required strategy and missing evidence, but failure injection/runtime retry execution is unavailable. Do not claim it was verified; a requested verification without sufficient evidence is NOT_VERIFIABLE.
+
+No evidence → no conclusive verification claim. Applicability, ExecutionSupport, ExecutionStatus, and VerdictStatus remain separate. An applicable evaluation can have execution support NOT_AVAILABLE, execution status NOT_RUN, and verdict NOT_VERIFIABLE; an unstarted case need not have a verdict.
+
+### Canonical final flow
+
+Repository → ArchitectureIR → Evaluation Profiler → EvaluationCandidate[] → VerificationPlan → Tool Execution → Evidence → Deterministic Verdict → Structured Trace. The profiler is implemented in M6 but remains upstream of verification in the canonical product architecture. This path must work without an LLM or API key.
+
+The revised MVP does not require generalized Python static analysis, generalized cross-file symbol resolution, LLM architecture inference, LangGraph, LangSmith, Docker sandboxing, k6 execution, failure injection, Change Planner, automatic code modification, architecture health scores, broad evaluation catalog execution, or generalized runtime verification.
 
 ---
 
