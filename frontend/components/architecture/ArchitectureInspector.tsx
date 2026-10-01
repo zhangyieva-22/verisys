@@ -9,7 +9,7 @@ function SourceReferences({ locations }: { locations: SourceLocation[] }) {
     <div className="source-list">{locations.map(location => <button className="source-reference" key={`${location.file}:${location.line}:${location.column}`} onClick={() => setActive(location)}>
       <FileCode2 size={14} /><code>{location.file}<span>:{location.line}</span></code><ArrowUpRight size={13} />
     </button>)}</div>
-    {active && <div className="inline-note" role="status"><code>{active.file}:{active.line}</code> is a real snapshot source reference. Source navigation is not connected.</div>}
+    {active && <div className="inline-note" role="status"><code>{active.file}:{active.line}</code> is a source reference returned by analysis. Source navigation is not connected.</div>}
   </>;
 }
 
@@ -26,7 +26,7 @@ export function ArchitectureInspector({ node, graph, onSelect, onClear }: { node
     <div className="panel-heading">Inspector<button className="icon-button" onClick={onClear} aria-label="Clear selection"><X size={16} /></button></div>
     <div className="inspector-content">
       <div className="inspector-identity"><div className="inspector-icon"><Icon size={23} /></div><div><h2>{node.label}</h2><span className="eyebrow">{label.toUpperCase()}</span></div></div>
-      <div className="fixture-caption">REAL REPOSITORY SNAPSHOT</div>
+      <div className="fixture-caption">SOURCE-GROUNDED ARCHITECTURE</div>
       <section><h3>COMPONENT DETAILS</h3><dl className="facts">{node.subtitle && <div><dt>{node.type === "EXTERNAL_SERVICE" ? "Detected library" : node.type === "TOOL" ? "Module" : node.type === "DATASTORE" ? "Engine" : "Handler"}</dt><dd><code>{node.subtitle}</code></dd></div>}</dl></section>
       <section><h3>SOURCE EVIDENCE <span>{node.source_locations.length}</span></h3><p className="section-description">Imports, construction, and supported usage.</p>{node.source_locations.length ? <SourceReferences locations={node.source_locations} /> : <p className="inline-note">The current graph has no source location for this component.</p>}</section>
       {Object.keys(node.metadata).length > 0 && <section><h3>METADATA</h3><pre className="metadata-source">{JSON.stringify(node.metadata, null, 2)}</pre></section>}

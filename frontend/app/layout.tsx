@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Architecture · Verisys",
-  description: "Verisys architecture workspace — clearly labeled fixture preview.",
+  description: "Verisys local repository architecture workspace.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

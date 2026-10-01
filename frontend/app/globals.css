@@ -198,3 +198,18 @@ h2 { font-size: 20px; letter-spacing: -0.5px; font-weight: 600; margin-top: 0; m
 .dependency-view-actions { display: flex; gap: 5px; }
 .dependency-view-actions button { padding: 6px 10px; border: 1px solid #4b6170; border-radius: 3px; background: #172331; color: #dae4ec; font-size: 11px; }
 .dependency-view-actions button:hover { background: #26394a; }
+
+/* M3C: local input and honest request states, outside graph presentation. */
+.analysis-empty { color: #c6d2de; padding: 90px 45px; max-width: 580px; }
+.analysis-empty h2 { font-size: 21px; margin-bottom: 12px; }
+.analysis-empty p { font-size: 13px; line-height: 1.7; margin-bottom: 22px; }
+.repository-input-backdrop { position: fixed; inset: 0; z-index: 30; display: flex; justify-content: center; align-items: center; background: #0b152a88; padding: 20px; }
+.repository-input { width: 480px; background: #fff; border: 1px solid #cbd3da; border-radius: 6px; padding: 25px; box-shadow: 0 15px 50px #0003; }
+.repository-input h2 { font-size: 20px; margin-bottom: 10px; }
+.repository-input p { font-size: 12px; line-height: 1.7; color: #647184; margin-bottom: 14px; }
+.repository-input label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 7px; }
+.repository-input input { width: 100%; border: 1px solid #aab8c5; border-radius: 3px; padding: 10px; font: 12px monospace; margin-bottom: 12px; }
+.repository-input-actions { display: flex; justify-content: flex-end; gap: 14px; align-items: center; }
+.repository-input .repository-error { color: #a02b35; }
+.repository-input button:disabled { opacity: .55; cursor: wait; }
+.sidebar-repository p { overflow-wrap: anywhere; }
