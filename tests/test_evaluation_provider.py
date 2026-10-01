@@ -14,7 +14,7 @@ def context():
     return normalize_architecture(ArchitectureIR(repository_root='not-read'))
 
 
-def body(*, text='{"candidates":[]}', status='completed', refusal=False):
+def body(*, text='{"selected_option_ids":[]}', status='completed', refusal=False):
     content = {'type': 'refusal', 'refusal': 'declined'} if refusal else {
         'type': 'output_text', 'text': text, 'annotations': [], 'logprobs': []}
     return {'id': 'resp_fake', 'object': 'response', 'created_at': 0, 'status': status,
@@ -41,7 +41,7 @@ def test_current_sdk_schema_constrained_request(context):
         response = adapter.generate(instructions='trusted instruction', structured_input=context, response_schema=LLMSelections)
     finally:
         sdk.close()
-    assert response.payload == {'candidates': []}
+    assert response.payload == {'selected_option_ids': []}
     assert response.request_id == 'request-fake'
     assert (response.input_tokens, response.output_tokens) == (20, 10)
     request = requests[0]
@@ -54,7 +54,7 @@ def test_current_sdk_schema_constrained_request(context):
     schema = request['text']['format']
     assert schema['type'] == 'json_schema' and schema['strict'] is True
     assert schema['schema']['additionalProperties'] is False
-    assert schema['schema']['$defs']['LLMSelection']['additionalProperties'] is False
+    assert schema['schema']['additionalProperties'] is False
 
 
 @pytest.mark.parametrize('response_body,status', [(body(refusal=True), 'REFUSED'),
@@ -107,3 +107,22 @@ def test_configuration_masks_key_and_requires_model():
     assert 'fake-test-key' not in repr(config) + config.model_dump_json()
     with pytest.raises(ValidationError):
         OpenAIConfig()
+
+
+def test_sdk_uses_request_specific_option_enum(context):
+    from verisys.evaluation.contracts import EligibleOption, selection_schema
+    options = [EligibleOption(option_id='option:' + character * 64, architecture_id=context.architecture_id,
+        evaluation_id='api-latency-v1', relevance_reason='http_api_routes', allowed_subject_ids=['route:fixture'],
+        architecture_summary='Fixture') for character in ('a', 'b')]
+    schema = selection_schema(options)
+    requests = []
+    def handler(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(200, json=body(text=json.dumps({'selected_option_ids': [options[0].option_id]})))
+    adapter, sdk = sdk_adapter(handler)
+    try:
+        response = adapter.generate(instructions='trusted', structured_input=context, response_schema=schema)
+    finally:
+        sdk.close()
+    assert response.payload == {'selected_option_ids': [options[0].option_id]}
+    assert requests[0]['text']['format']['schema']['properties']['selected_option_ids']['items']['enum'] == [o.option_id for o in options]

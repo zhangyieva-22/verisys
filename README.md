@@ -1,14 +1,37 @@
 # Verisys
 
-Architecture-aware engineering verification, currently providing safe local
-Python architecture analysis and a source-grounded architecture workspace.
-M4 Core provides static timeout verification; M4.5 Core provides independent, optional LLM evaluation discovery.
+Verisys is an **architecture-aware Engineering Verification Agent**. It helps
+answer: what is worth verifying in this system, how can we verify it, and what
+real evidence supports the result?
 
-## Local development
+The intended workflow is:
 
-Use Python 3.11+ and Node.js 20.9+.
+Repository → ArchitectureIR → Evaluation Discovery → Verification Planning →
+Tool Execution → Evidence → Deterministic Verdict → Structured Trace.
 
-From the Verisys root, install **Verisys** dependencies and start the backend:
+## What works today
+
+- Safe, bounded local Python repository discovery and static architecture analysis.
+- Source-grounded architecture components, internal imports and a limited set of
+  source-declared execution flows.
+- A Next.js architecture workspace with System Flow, Dependency View and Inspector,
+  connected to the local FastAPI analysis endpoint.
+- M4 Core: static explicit per-call OpenAI timeout verification, producing immutable
+  source-backed evidence, a deterministic verdict and structured trace.
+- M4.5 Core: deterministic eligible discovery options, optional LLM selection of
+  option IDs, and strict server-controlled EvaluationCandidate construction.
+
+Discovery and verification are independent Python capabilities. The current UI
+and API expose **architecture analysis only**; suggested evaluations and real
+verification execution are not integrated yet. Runtime verification is not
+implemented. See [the milestone plan](docs/mvp-plan.md).
+
+## Local setup
+
+Use Python 3.11+ and Node.js 20.9+. The current filesystem safety implementation
+uses POSIX directory descriptors; macOS/Linux are the intended local platforms.
+
+Install Verisys's dependencies, not dependencies from repositories being analyzed:
 
 ```sh
 python3 -m venv .venv
@@ -16,7 +39,7 @@ python3 -m venv .venv
 .venv/bin/python -m uvicorn verisys.api.app:app --host 127.0.0.1 --port 8000
 ```
 
-In a second terminal:
+In another terminal:
 
 ```sh
 cd frontend
@@ -24,120 +47,95 @@ npm ci
 npm run dev
 ```
 
-Open http://127.0.0.1:3000, click **Analyze Repository**, enter an absolute path
-such as `/Users/me/projects/my-agent`, and click **Analyze**. The backend calls
-Discovery → Architecture Analyzer → ArchitectureIR → ArchitectureGraph. The
-returned graph includes source-declared execution flows and actual limitations.
-System Flow, Dependency View and Inspector render that result. An empty flow
-list is valid; Dependency View remains available. Failed analysis never falls
-back to a demo. The checked-in snapshots remain test fixtures only.
+Open `http://127.0.0.1:3000`, choose **Analyze Repository**, and enter an absolute
+local repository path on the backend machine. No GitHub cloning is performed.
+Failed analysis never silently falls back to a demo. Checked-in graph snapshots
+are explicitly illustrative or offline real-repository fixtures, not live results.
 
-`POST /api/analyze` accepts `{"repository_path":"/absolute/local/path"}` and
-returns `{repository: {name, path}, architecture: ArchitectureIR, graph:
-ArchitectureGraph}`. `graph.execution_flows` and `graph.limitations` retain the
-existing models without duplicate copies in the API envelope. Controlled errors
-use `{error: {code, message}}`; no exception text or stack traces are returned.
+The frontend proxies `/api/analyze` to `http://127.0.0.1:8000`. Set
+`VERISYS_BACKEND_URL` for a different backend address. Keep both servers on
+loopback; this is a local development interface, not a hosted multi-user service.
 
-The Next.js server proxies `/api/analyze` to `http://127.0.0.1:8000`. Override
-`VERISYS_BACKEND_URL` when starting Next.js if the backend uses another port.
-Keep both servers on loopback. The API permits browser origins
-`http://127.0.0.1:3000` and `http://localhost:3000`, without wildcard CORS.
+## Run the static golden verification
 
-This milestone accepts local paths on the backend machine only. It does not
-clone GitHub repositories, install analyzed dependencies, import repository
-modules, execute repository code, persist history, or run verification. Existing
-file, discovery and source-input budgets and symlink protections still apply.
-Source locations are displayed; IDE navigation is not connected. Architecture
-extraction remains limited to the previously supported patterns.
+This requires no model/API key and never executes the example's code:
 
-## Validation
+```python
+from verisys.verification import verify_timeout_coverage
+
+run = verify_timeout_coverage("examples/timeout-coverage")
+print(run.model_dump_json(indent=2))
+```
+
+Expected: 2 configured / 1 missing / 0 unknown, 66.7% coverage, `VIOLATED`.
+`examples/timeout-unknown` yields `NOT_VERIFIABLE` for a symbolic timeout.
+The policy checks explicit positive finite numeric per-call `timeout` literals
+on supported direct OpenAI calls. It does not prove effective runtime timeouts,
+client defaults or wrapper behavior. See [the exact policy](docs/evaluation-catalog.md).
+
+## Optional LLM evaluation discovery
+
+Install the optional provider/local-development dependencies:
+
+```sh
+.venv/bin/python -m pip install -e '.[test,discovery]'
+cp .env.example .env
+```
+
+Fill `OPENAI_API_KEY` and `VERISYS_DISCOVERY_MODEL` locally. Choose a model that
+supports Responses structured outputs; the implementation does not hardcode one.
+Existing process environment variables take precedence over `.env`.
+
+**Never commit or push `.env` or credentials.** The blank `.env.example` is safe
+to share. Only the opt-in live test loads project-root `.env`; importing Verisys,
+starting the backend and routine pytest do not load it implicitly.
+
+The live test sends a bounded normalized architecture summary to OpenAI. It sends
+relative source references, labels, declared flow facts and catalog options, not
+raw source, repository root, config values, credentials or verification results.
+Architecture metadata can still be sensitive; run live discovery deliberately.
+The model receives no tools and selects only supplied eligible option IDs.
+
+```sh
+VERISYS_LIVE_DISCOVERY=1 \
+VERISYS_LIVE_REPOSITORY=/absolute/path/to/ecommerce-ai-agent \
+.venv/bin/python -m pytest tests/test_evaluation_live.py -s --tb=short
+```
+
+Use [the canonical real-repository smoke test](docs/contributing.md#real-repository-smoke-test)
+for the ecommerce URL, pinned checkout and offline snapshot procedure.
+
+Routine tests skip the live test. Provider/discovery failures are controlled errors,
+not empty successful recommendations. Opt-in test configuration/setup failures can
+occur before discovery (missing variables or invalid configuration). Live discovery
+never executes verification. See [discovery/provider test guidance](docs/contributing.md#discoveryprovider-tests)
+for optional dependencies needed to run mocked SDK tests without credentials.
+
+## Validation and collaboration
 
 ```sh
 .venv/bin/python -m pytest
-.venv/bin/python -m pytest tests/test_api.py
 cd frontend
 npm run typecheck
 npm test
 npm run build
 ```
 
-## M4 Core: explicit OpenAI per-call timeout verification
+Run `git diff --check` from the project root. Do not enable live testing as part
+of ordinary validation.
 
-No API key or repository dependency installation is needed. Inspect the bundled
-example through the Python function (the example itself is never executed):
+Start with [the contribution guide](docs/contributing.md) for branch/PR workflow,
+module coordination, checks and secret handling. [AGENTS.md](AGENTS.md) contains
+repository-wide contributor and coding-agent invariants.
 
-```python
-from verisys.verification import verify_timeout_coverage
-run = verify_timeout_coverage("examples/timeout-coverage")
-print(run.model_dump_json(indent=2))
-```
+## Documentation map
 
-The golden result is 2 configured / 1 missing / 0 unknown, 66.7%, VIOLATED.
-`examples/timeout-unknown` yields NOT_VERIFIABLE for a symbolic timeout.
-A conclusively irrelevant repository yields NOT_APPLICABLE and NOT_RUN with no
-verdict. This core is not yet connected to the frontend Verify button or HTTP API.
+- [Product specification](docs/product-spec.md): users, product workflow and boundaries.
+- [Architecture](docs/architecture.md): current modules, contracts and safe-read boundaries.
+- [Evaluation catalog](docs/evaluation-catalog.md): discovery options and executable timeout policy.
+- [Milestone plan](docs/mvp-plan.md): implemented work, acceptance criteria and future scope.
+- [Contribution guide](docs/contributing.md): setup, collaboration, testing and handoffs.
 
-v1 requires an explicit positive finite numeric per-call `timeout` literal on
-already-supported OpenAI calls. Missing or invalid literals fail this policy;
-symbolic values and expanded keywords are unknown. A client constructor timeout
-does not satisfy this per-call policy. Stripe/Twilio and ChatOpenAI wrappers are
-outside its grammar. It does not establish effective runtime behavior or SDK
-defaults. Evidence retains exact source locations and content hashes, never
-runtime measurements, secrets or source dumps. See the evaluation catalog for
-scope completeness, conservative limitations and deterministic judgment rules.
-
-Keep the repository stable while analyzing/verifying. Safe reads and content
-hash comparison protect bounded inspection, but do not provide an atomic
-filesystem snapshot. Invalid roots and unexpected internal errors propagate to
-the Python caller rather than being converted into an engineering violation.
-
-
-## M4.5 Core: catalog-bounded evaluation discovery
-
-`verisys.evaluation.discover_evaluations(architecture, client)` accepts an existing
-ArchitectureIR, not a repository path. It does not read repository files, import
-repository modules, invoke verifiers, produce Evidence/Verdict, or change the UI.
-The current HTTP API and Verify button are unchanged.
-
-The LLM selects known evaluation IDs and supplied architecture subject IDs using
-catalog-approved rationale codes. The catalog/server owns semantics, applicability,
-execution support, MEDIUM default priority, required evidence and limitations.
-Verification tools collect Evidence; the deterministic Judge produces Verdict.
-See [the catalog](docs/evaluation-catalog.md#m45-core-discovery-contract).
-
-Live discovery sends a **normalized architecture summary** (relative source
-references, names, routes, tools, declared flows and limitations) to the configured
-OpenAI provider. It does not send raw source, repository root, config values,
-credentials, runtime measurements or verification results. Architecture labels
-remain untrusted data, separate from instructions. The model has no tools.
-Review architecture metadata sensitivity before deliberately enabling live use.
-
-The OpenAI SDK is optional; fake-client discovery and M4 work without it:
-
-```sh
-.venv/bin/python -m pip install -e '.[test,discovery]'
-```
-
-Configure `OPENAI_API_KEY` outside this repository (for example, in your shell),
-then set `VERISYS_DISCOVERY_MODEL` to a model supporting Responses structured
-outputs. No model or universal temperature setting is hardcoded. SDK requests use
-strict schema parsing, no tools, `store=False`, disabled input truncation, a
-30-second timeout, no automatic retries and a 2048-token output budget; timeout
-and output budget are adapter configuration fields.
-
-The live test is **skipped in normal pytest**, requires explicit opt-in and runs
-safe architecture analysis before discovery; it never executes verification:
-
-```sh
-VERISYS_LIVE_DISCOVERY=1 \
-VERISYS_DISCOVERY_MODEL=your-structured-output-model \
-VERISYS_LIVE_REPOSITORY=/absolute/path/to/ecommerce-ai-agent \
-.venv/bin/python -m pytest tests/test_evaluation_live.py -s
-```
-
-There is no implicit fixture fallback. Missing credentials, provider errors,
-refusals, incomplete output and invalid selections raise sanitized DiscoveryError,
-not an empty recommendation list. Valid empty selections succeed. Empty complete
-architecture can skip the provider; empty incomplete/truncated context fails
-explicitly. Provider diagnostics are bounded metadata, not engineering Evidence
-or verification Trace, and never retain raw response text or chain-of-thought.
+Keep these documents aligned with implementation. Planned behavior must be
+labeled as planned; a recommendation, architecture diagram or provider response
+is never evidence that an engineering requirement was verified.

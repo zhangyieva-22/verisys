@@ -5,6 +5,7 @@ from pathlib import PurePosixPath
 
 from verisys.architecture.graph import _id, project_architecture_graph
 from verisys.models import ArchitectureIR
+from .options import build_options
 from .catalog import CATALOG_VERSION, DEFINITIONS
 from .contracts import ArchitectureSubject, DiscoveryError, DiscoveryInput, DiscoveryLimits
 
@@ -113,9 +114,23 @@ def normalize_architecture(architecture: ArchitectureIR, *, limits: DiscoveryLim
     result.subjects = filtered
     if result.input_truncated:
         result.discovery_limitations = ["Discovery input was truncated; omitted facts do not establish absence."]
-    data = result.model_dump(mode="json")
-    data.pop("architecture_id")
-    result.architecture_id = hashlib.sha256(canonical(data).encode()).hexdigest()
-    if _objects(result.model_dump(mode="json")) > limits.max_objects or len(canonical(result.model_dump(mode="json")).encode()) > limits.max_input_bytes:
-        raise DiscoveryError("input_budget_too_small")
+    # Options count toward the same budgets. Drop whole options, never identifiers.
+    allowed = None
+    while True:
+        data = result.model_dump(mode="json")
+        data.pop("architecture_id")
+        data.pop("eligible_options")
+        result.architecture_id = hashlib.sha256(canonical(data).encode()).hexdigest()
+        options = build_options(result)
+        if allowed is not None:
+            options = [option for option in options if (option.evaluation_id, option.relevance_reason) in allowed]
+        result.eligible_options = options
+        data = result.model_dump(mode="json")
+        if _objects(data) <= limits.max_objects and len(canonical(data).encode()) <= limits.max_input_bytes:
+            break
+        if not options:
+            raise DiscoveryError("input_budget_too_small")
+        allowed = {(option.evaluation_id, option.relevance_reason) for option in options[:-1]}
+        result.input_truncated = True
+        result.discovery_limitations = ["Discovery input was truncated; omitted facts do not establish absence."]
     return result

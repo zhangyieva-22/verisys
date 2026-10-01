@@ -21,9 +21,20 @@ graph to MODULE + IMPORTS without changing the DTO. Inspectors display actual
 source locations and limitations. Repositories without a supported flow remain
 valid. Repository names come from backend metadata, never the test snapshot.
 
-The ecommerce snapshot for commit
-`3d38d5ab7fa0f27bd5c28488afa354abaf2577b4` and other fixtures remain available
-for tests; they are not imported by the production workspace.
+Offline fixture provenance and refresh instructions are in
+[the canonical real-repository smoke test](../docs/contributing.md#real-repository-smoke-test).
+Fixtures are not imported by the production workspace.
+
+## Backend/frontend contracts
+
+`lib/architecture/types.ts` manually mirrors the Python graph/execution models.
+`lib/architecture/analysis-client.ts` owns the analysis response type, request and
+client checks; `next.config.ts` owns proxy configuration. No types are generated.
+Coordinate serialized backend changes with these files and run backend tests plus
+all frontend checks below. IR is returned for other consumers; rendering uses the
+graph DTO. See [shared contracts](../docs/architecture.md#shared-contracts-and-mutation).
+
+Run commands in this directory:
 
 ```sh
 npm run typecheck

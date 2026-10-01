@@ -4,3 +4,7 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+# Local credentials; only blank public templates may be committed.
+.env
+.env.*
+!.env.example

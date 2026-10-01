@@ -2,12 +2,12 @@
 from dataclasses import dataclass
 from typing import Annotated, Literal, Protocol
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, create_model
 from verisys.models import EvaluationCandidate
 from verisys.models.base import DomainModel
 
-SCHEMA_VERSION = "evaluation-discovery-input-v1"
-PROMPT_VERSION = "evaluation-selection-v1"
+SCHEMA_VERSION = "evaluation-discovery-input-v2"
+PROMPT_VERSION = "evaluation-option-selection-v2"
 
 
 class DiscoveryError(ValueError):
@@ -31,6 +31,16 @@ class ArchitectureSubject(DomainModel):
     facts: dict[str, JsonValue]
 
 
+class EligibleOption(DomainModel):
+    model_config = ConfigDict(frozen=True)
+    option_id: str
+    architecture_id: str
+    evaluation_id: str
+    relevance_reason: str
+    allowed_subject_ids: list[str]
+    architecture_summary: str
+
+
 class DiscoveryInput(DomainModel):
     schema_version: str = SCHEMA_VERSION
     architecture_id: str
@@ -41,16 +51,30 @@ class DiscoveryInput(DomainModel):
     input_truncated: bool
     discovery_limitations: list[str]
     catalog: list[dict[str, JsonValue]]
+    eligible_options: list[EligibleOption] = Field(default_factory=list)
 
 
-class LLMSelection(DomainModel):
+class GroundedSelection(DomainModel):
     evaluation_id: str = Field(min_length=1, max_length=128, strict=True)
-    architecture_subject_ids: list[Annotated[str, Field(min_length=1, max_length=512, strict=True)]] = Field(min_length=1, max_length=16)
+    architecture_subject_ids: list[Annotated[str, Field(min_length=1, max_length=512, strict=True)]] = Field(min_length=1, max_length=128)
     relevance_reason: str = Field(min_length=1, max_length=64, strict=True)
 
 
+class GroundedSelections(DomainModel):
+    candidates: list[GroundedSelection] = Field(max_length=4)
+
+
 class LLMSelections(DomainModel):
-    candidates: list[LLMSelection] = Field(max_length=4)
+    selected_option_ids: list[Annotated[str, Field(min_length=1, max_length=80, strict=True)]] = Field(max_length=5)
+
+
+def selection_schema(options):
+    """Constrain this request's structured-output enum to supplied option IDs."""
+    identifiers = tuple(option.option_id for option in options)
+    if not identifiers:
+        return LLMSelections
+    return create_model("EligibleOptionSelection", __base__=LLMSelections,
+        selected_option_ids=(list[Literal[identifiers]], Field(max_length=5)))
 
 
 @dataclass(frozen=True)

@@ -1,5 +1,6 @@
 """Opt-in only: sends normalized architecture to OpenAI, never executes verification."""
 import os
+from pathlib import Path
 
 import pytest
 
@@ -10,6 +11,8 @@ from verisys.evaluation import OpenAIClient, OpenAIConfig, discover_evaluations,
 
 @pytest.mark.skipif(os.getenv('VERISYS_LIVE_DISCOVERY') != '1', reason='Explicit live discovery opt-in required')
 def test_live_evaluation_discovery():
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parents[1] / ".env", override=False)
     # All three inputs must be supplied deliberately. No implicit fixture fallback.
     repository = os.environ['VERISYS_LIVE_REPOSITORY']
     model = os.environ['VERISYS_DISCOVERY_MODEL']
