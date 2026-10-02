@@ -65,12 +65,12 @@ test('empty selection and provider error are separate states without fallback', 
     const ui=render(createElement(SuggestedVerifications,props));
     fireEvent.click(ui.getByRole('button',{name:'Discover Verifications'}));
     await waitFor(()=>assert.equal(ui.container.querySelector('section')?.getAttribute('data-state'),'EMPTY'));
-    assert.ok(ui.getByText(/No recommendations were selected/));
+    assert.ok(ui.getByText(/No supported evaluation was selected/));
     globalThis.fetch=async()=>response({error:{code:'DISCOVERY_PROVIDER_FAILED',message:'Provider could not complete discovery.'}},502);
     fireEvent.click(ui.getByRole('button',{name:'Discover Verifications'}));
     await waitFor(()=>assert.equal(ui.container.querySelector('section')?.getAttribute('data-state'),'ERROR'));
-    assert.equal(ui.getByRole('alert').textContent,'Provider could not complete discovery.');
-    assert.equal(ui.queryByText(/No recommendations were selected/),null);
+    assert.equal(ui.getByRole('alert').textContent,'Verification discovery is temporarily unavailable. Try again later.');
+    assert.equal(ui.queryByText(/No supported evaluation was selected/),null);
     assert.equal(ui.queryByText('API Latency'),null);
   } finally {restore();}
 });
@@ -92,11 +92,13 @@ test('new analysis invalidates recommendations, aborts in-flight requests and ig
     const { ArchitectureWorkspace }=await import('../components/architecture/ArchitectureGraph');
     const ui=render(createElement(ArchitectureWorkspace));
     async function analyze(repositoryPath:string) {
-      fireEvent.click(ui.getByRole('button',{name:'Analyze Repository'}));
-      fireEvent.click(ui.getByRole('button', {name:'Local path · development option'}));
+      if (ui.queryByRole('button',{name:'Overview'})) fireEvent.click(ui.getByRole('button',{name:'Overview'}));
+      fireEvent.click(ui.getByRole('button',{name:ui.queryByRole('button',{name:'Re-analyze Repository'})?'Re-analyze Repository':'Analyze Repository'}));
+      if (!ui.queryByLabelText('Local repository path')) fireEvent.click(ui.getByRole('button', {name:'Local path · development option'}));
   fireEvent.change(ui.getByLabelText('Local repository path'),{target:{value:repositoryPath}});
-      fireEvent.click(ui.getByRole('button',{name:'Analyze'}));
-      await waitFor(()=>assert.ok(ui.getByRole('button',{name:'Discover Verifications'})));
+      fireEvent.click(ui.getAllByRole('button',{name:'Analyze Repository'}).at(-1)!);
+      await waitFor(()=>assert.ok(ui.getByRole('button',{name:'View Verifications'})));
+      fireEvent.click(ui.getByRole('button',{name:'Verifications'}));
     }
     await analyze(path);
     fireEvent.click(ui.getByRole('button',{name:'Discover Verifications'}));
@@ -110,6 +112,7 @@ test('new analysis invalidates recommendations, aborts in-flight requests and ig
     await waitFor(()=>assert.equal(ui.container.querySelector('.suggested-verifications')?.getAttribute('data-state'),'IDLE'));
     assert.equal(ui.queryByText('API Latency'),null);
     assert.equal(discoveryCalls,2);
+    fireEvent.click(ui.getByRole('button',{name:'Architecture'}));
     fireEvent.click(ui.getByRole('button',{name:'Dependency View'}));
     assert.equal(ui.container.querySelectorAll('.react-flow__node').length,14);
   } finally {restore();}

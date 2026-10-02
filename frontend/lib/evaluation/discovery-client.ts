@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "../api-errors";
 import { sourceBody, type RepositorySource, type AnalysisIntent } from "../repository-source";
 // Manually mirrored narrow API DTO; candidate policy belongs to the backend.
 export type SuggestedVerification = {
@@ -56,7 +57,7 @@ export async function discoverVerifications(source: RepositorySource | string, a
   let data;
   try { data = await response.json(); }
   catch { throw new Error("Discovery returned an invalid response."); }
-  if (!response.ok) throw new DiscoveryApiError(typeof data?.error?.message === "string" ? data.error.message : "Discovery could not be completed.", typeof data?.error?.code === "string" ? data.error.code : "DISCOVERY_FAILED");
+  if (!response.ok) throw new DiscoveryApiError(apiErrorMessage(data?.error?.code, typeof data?.error?.message === "string" ? data.error.message : "Discovery could not be completed."), typeof data?.error?.code === "string" ? data.error.code : "DISCOVERY_FAILED");
   if (!Array.isArray(data?.candidates) || !data.candidates.every(candidate) ||
     typeof data.architecture_id !== "string" || typeof data.catalog_version !== "string" ||
     typeof data.input_truncated !== "boolean" || !strings(data.limitations)) {

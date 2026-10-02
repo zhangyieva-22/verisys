@@ -1,9 +1,9 @@
-import { ChevronDown, FolderGit2, ScanLine, SquareStack } from "lucide-react";
-
-export function AppHeader({ repositoryName, analyzing, ready, onAnalyze }: { repositoryName: string; analyzing: boolean; ready: boolean; onAnalyze: () => void }) {
+import { ArrowLeft, SquareStack } from 'lucide-react';
+export function AppHeader({ name, identity, onProjects }: {name?: string; identity?: string; onProjects?: () => void}) {
   return <header className="app-header">
-    <div className="brand"><span className="brand-mark"><SquareStack size={21} strokeWidth={2.2} /></span>verisys<span className="brand-divider" /></div>
-    <div className="repository-context"><FolderGit2 size={17} /><span>{repositoryName}</span><ChevronDown size={13} /></div>
-    <div className="header-right"><span className="demo-badge">{ready ? "REAL ANALYSIS" : analyzing ? "ANALYZING" : "LOCAL REPOSITORY"}</span><button className="analyze-button" disabled={analyzing} onClick={onAnalyze}><ScanLine size={16} />Analyze Repository</button></div>
+    <div className="brand"><span className="brand-mark"><SquareStack size={21}/></span>verisys</div>
+    {name && <div className="project-identity"><strong>{name}</strong><span>{identity}</span></div>}
+    {onProjects && <button className="all-projects" onClick={onProjects}><ArrowLeft size={15}/>All Projects</button>}
+    {!name && <span className="global-context">Projects</span>}
   </header>;
 }

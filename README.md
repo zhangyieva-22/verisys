@@ -187,3 +187,19 @@ Development intake uses `{"source":{"type":"local","path":"/absolute/path"}}`.
 The old repository_path-only body remains a local compatibility path; combining it
 with source is rejected. Remote temporary filesystem paths are never returned.
 Acquisition uses independent download/extraction limits; see the architecture doc.
+
+## Project workspace (M8)
+
+The app opens on **Projects**, with one Analyze Repository entry. Choose Proactive
+to find checks, or On-demand to supply a concern. Successful analysis opens the
+repository's Overview; Architecture contains System Flow/Dependency View and the
+Inspector, while Verifications contains suggestions and evidence-backed results.
+Use All Projects to switch between repositories. Runs is hidden: no durable run
+history exists.
+
+Recent GitHub projects are lightweight browser-local navigation metadata (up to
+20 repositories), not authoritative persistence or a production team database.
+A reload restores names/revisions only; Open Project obtains fresh server analysis
+at the saved commit, without an automatic paid discovery. Discover explicitly, or
+re-analyze with a new concern. Architecture, suggestions, evidence and results live
+only in the current session. Local development paths are never persisted.

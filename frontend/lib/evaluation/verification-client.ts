@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "../api-errors";
 import { sourceBody, type RepositorySource } from "../repository-source";
 import { DiscoveryApiError } from './discovery-client';
 export type VerificationResult = {
@@ -26,7 +27,7 @@ export async function runVerification(source: RepositorySource | string, id: str
   catch { throw new Error('Cannot reach verification. Check the local backend connection.'); }
   let d;
   try { d = await response.json(); } catch { throw new Error('Verification returned an invalid response.'); }
-  if (!response.ok) throw new DiscoveryApiError(typeof d?.error?.message === 'string' ? d.error.message : 'Verification failed.', typeof d?.error?.code === 'string' ? d.error.code : 'VERIFICATION_FAILED');
+  if (!response.ok) throw new DiscoveryApiError(apiErrorMessage(d?.error?.code, typeof d?.error?.message === 'string' ? d.error.message : 'Verification failed.'), typeof d?.error?.code === 'string' ? d.error.code : 'VERIFICATION_FAILED');
   if (!d || d.evaluation_id !== id || typeof d.evaluation_name !== 'string' || typeof d.summary !== 'string' || typeof d.policy !== 'string' ||
     !['APPLICABLE','NOT_APPLICABLE','UNKNOWN'].includes(d.applicability) ||
     !['PENDING','RUNNING','COMPLETED','FAILED','NOT_RUN'].includes(d.execution_status) || d.verification_mode !== 'STATIC' ||

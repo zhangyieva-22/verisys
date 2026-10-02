@@ -15,21 +15,21 @@ const timeout={id:'external-api-timeout-coverage-v1',name:'External API Timeout 
 const discovery={architecture_id:hash,catalog_version:'v1',input_truncated:false,limitations:[],candidates:[timeout,{...timeout,id:'api-latency-v1',name:'API Latency',execution_support:'NOT_AVAILABLE',can_execute:false}]};
 const response=(d:unknown,status=200)=>new Response(JSON.stringify(d),{status});
 function restore(){cleanup();globalThis.fetch=originalFetch;}
-function enter(ui:ReturnType<typeof render>){fireEvent.click(ui.getByRole('button',{name:'Analyze Repository'}));fireEvent.change(ui.getByLabelText('Repository URL'),{target:{value:url}});}
+function enter(ui:ReturnType<typeof render>){fireEvent.click(ui.getByRole('button',{name:ui.queryByRole('button',{name:'Re-analyze Repository'})?'Re-analyze Repository':'Analyze Repository'}));fireEvent.change(ui.getByLabelText('Repository URL'),{target:{value:url}});}
 
 test('GitHub is primary; ref/mode/concern fields produce bounded intent',async()=>{
  const bodies:Record<string,unknown>[]=[];
  globalThis.fetch=async(u,o)=>{bodies.push(JSON.parse(String(o?.body)));return response(u==='/api/analyze'?analysis:discovery);};
  try{const ui=render(createElement(ArchitectureWorkspace));enter(ui);assert.equal(ui.queryByLabelText('Local repository path'),null);
   fireEvent.change(ui.getByLabelText('Branch / tag / commit (optional)'),{target:{value:'main'}});
-  assert.equal(ui.queryByLabelText('What do you want Verisys to check?'),null);
-  fireEvent.click(ui.getByLabelText(/ON-DEMAND/));fireEvent.change(ui.getByLabelText('What do you want Verisys to check?'),{target:{value:'Check OpenAI timeouts'}});
-  fireEvent.click(ui.getByRole('button',{name:'Analyze'}));
+  assert.equal(ui.queryByLabelText('What do you want to verify?'),null);
+  fireEvent.click(ui.getByLabelText('On-demand'));fireEvent.change(ui.getByLabelText('What do you want to verify?'),{target:{value:'Check OpenAI timeouts'}});
+  fireEvent.click(ui.getAllByRole('button',{name:'Analyze Repository'}).at(-1)!);
   await waitFor(()=>assert.ok(ui.getByText('Run Verification')));
   assert.deepEqual(bodies[0],{source:{type:'github',url,ref:'main'}});
   assert.deepEqual(bodies[1],{source,expected_architecture_id:hash,mode:'ON_DEMAND',request_text:'Check OpenAI timeouts'});
-  assert.ok(ui.getByText('3d38d5a'));assert.ok(ui.getByText('Agent Workflow'));
-  assert.ok(ui.getByText('No installed verifier').hasAttribute('disabled'));
+  assert.ok(ui.getByText(/owner\/repo · 3d38d5a/));fireEvent.click(ui.getByRole('button',{name:'Architecture'}));assert.ok(ui.getByText('Agent Workflow'));
+  assert.ok(ui.getByText('Verification not available yet').hasAttribute('disabled'));
  }finally{restore();}
 });
 
@@ -37,9 +37,9 @@ test('proactive auto discovery happens once, uses immutable SHA and not a moving
  let analysisCalls=0,discoveryCalls=0;
  globalThis.fetch=async(u,o)=>{if(u==='/api/analyze'){analysisCalls++;return response(analysis);}discoveryCalls++;
   assert.deepEqual(JSON.parse(String(o?.body)),{source,expected_architecture_id:hash,mode:'PROACTIVE'});return response(discovery);};
- try{const ui=render(createElement(ArchitectureWorkspace));enter(ui);fireEvent.click(ui.getByRole('button',{name:'Analyze'}));fireEvent.click(ui.getByRole('button',{name:'Analyzing…'}));
+ try{const ui=render(createElement(ArchitectureWorkspace));enter(ui);fireEvent.click(ui.getAllByRole('button',{name:'Analyze Repository'}).at(-1)!);fireEvent.click(ui.getByRole('button',{name:'Analyzing…'}));
   await waitFor(()=>assert.ok(ui.getByText('Run Verification')));
-  fireEvent.click(ui.getByText('Dependency View'));fireEvent.click(ui.getByText('System Flow'));
+  fireEvent.click(ui.getByRole('button',{name:'Architecture'}));fireEvent.click(ui.getByText('Dependency View'));fireEvent.click(ui.getByText('System Flow'));
   assert.equal(analysisCalls,1);assert.equal(discoveryCalls,1);
  }finally{restore();}
 });
@@ -58,7 +58,7 @@ test('on-demand empty is a no-match, not a verdict; provider error is distinct',
  globalThis.fetch=async()=>response(++calls===1?{...discovery,candidates:[]}:{error:{code:'DISCOVERY_PROVIDER_FAILED',message:'Provider unavailable'}},calls===1?200:502);
  try{const ui=render(createElement(SuggestedVerifications,{source,architectureId:hash,intent:{mode:'ON_DEMAND',request_text:'Unsupported request'},autoDiscover:true,onAnalyze:()=>{}}));
   await waitFor(()=>assert.ok(ui.getByText('No currently supported evaluation matches this request.')));assert.equal(ui.queryByText('NOT_VERIFIABLE'),null);
-  fireEvent.click(ui.getByText('Discover Verifications'));await waitFor(()=>assert.ok(ui.getByText('Provider unavailable')));
+  fireEvent.click(ui.getByText('Discover Verifications'));await waitFor(()=>assert.ok(ui.getByText('Verification discovery is temporarily unavailable. Try again later.')));
   assert.equal(ui.queryByText('No currently supported evaluation matches this request.'),null);
  }finally{restore();}
 });
@@ -67,20 +67,20 @@ test('invalid URLs never reach backend and acquisition failures never show fixtu
  let calls=0;
  globalThis.fetch=async()=>{calls++;return response({error:{code:'REPOSITORY_TOO_LARGE',message:'Repository exceeds acquisition limit.'}},413);};
  try{const ui=render(createElement(ArchitectureWorkspace));enter(ui);
-  fireEvent.change(ui.getByLabelText('Repository URL'),{target:{value:'https://evil.example/repo'}});fireEvent.click(ui.getByRole('button',{name:'Analyze'}));
-  assert.equal(calls,0);assert.ok(ui.getByText('Enter an HTTPS public GitHub owner/repository URL.'));
-  fireEvent.change(ui.getByLabelText('Repository URL'),{target:{value:url}});fireEvent.click(ui.getByRole('button',{name:'Analyze'}));
-  await waitFor(()=>assert.ok(ui.getByText('Analysis failed')));assert.equal(ui.queryByText('Agent Workflow'),null);assert.equal(calls,1);
+  fireEvent.change(ui.getByLabelText('Repository URL'),{target:{value:'https://evil.example/repo'}});fireEvent.click(ui.getAllByRole('button',{name:'Analyze Repository'}).at(-1)!);
+  assert.equal(calls,0);assert.ok(ui.getAllByRole('button',{name:'Analyze Repository'}).at(-1)!.hasAttribute('disabled'));
+  fireEvent.change(ui.getByLabelText('Repository URL'),{target:{value:url}});fireEvent.click(ui.getAllByRole('button',{name:'Analyze Repository'}).at(-1)!);
+  await waitFor(()=>assert.ok(ui.getByRole('alert')));assert.equal(ui.queryByText('Agent Workflow'),null);assert.equal(calls,1);
  }finally{restore();}
 });
 
 for(const field of ['Repository URL','Branch / tag / commit (optional)','mode']){
  test(`changing ${field} clears architecture/suggestions/results before a new action`,async()=>{
   globalThis.fetch=async u=>response(u==='/api/analyze'?analysis:discovery);
-  try{const ui=render(createElement(ArchitectureWorkspace));enter(ui);fireEvent.click(ui.getByRole('button',{name:'Analyze'}));await waitFor(()=>assert.ok(ui.getByText('Run Verification')));
-    fireEvent.click(ui.getByRole('button',{name:'Analyze Repository'}));
-    if(field==='mode')fireEvent.click(ui.getByLabelText(/ON-DEMAND/));else fireEvent.change(ui.getByLabelText(field),{target:{value:field==='Repository URL'?'https://github.com/new/repo':'new-branch'}});
-    assert.equal(ui.queryByText('Run Verification'),null);assert.equal(ui.queryByText('Agent Workflow'),null);assert.equal(ui.queryByText('3d38d5a'),null);
+  try{const ui=render(createElement(ArchitectureWorkspace));enter(ui);fireEvent.click(ui.getAllByRole('button',{name:'Analyze Repository'}).at(-1)!);await waitFor(()=>assert.ok(ui.getByText('Run Verification')));
+    fireEvent.click(ui.getByRole('button',{name:ui.queryByRole('button',{name:'Re-analyze Repository'})?'Re-analyze Repository':'Analyze Repository'}));
+    if(field==='mode')fireEvent.click(ui.getByLabelText('On-demand'));else fireEvent.change(ui.getByLabelText(field),{target:{value:field==='Repository URL'?'https://github.com/new/repo':'new-branch'}});
+    assert.equal(ui.queryByText('Run Verification'),null);assert.equal(ui.queryByText('Agent Workflow'),null);assert.equal(ui.queryByText(/owner\/repo · 3d38d5a/),null);
   }finally{restore();}
  });
 }

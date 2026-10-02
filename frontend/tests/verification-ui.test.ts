@@ -45,7 +45,7 @@ test('installed capability allows UNKNOWN/PARTIAL; running deduplicates and resu
     return new Promise<Response>(done=>{resolve=done;});};
   try{const ui=render(createElement(SuggestedVerifications,props));fireEvent.click(ui.getByText('Discover Verifications'));
     await waitFor(()=>assert.ok(ui.getByText('Run Verification')));
-    assert.ok(ui.getByText('No installed verifier').hasAttribute('disabled'));
+    assert.ok(ui.getByText('Verification not available yet').hasAttribute('disabled'));
     fireEvent.click(ui.getByText('Run Verification'));fireEvent.click(ui.getByText('Run Verification'));
     assert.equal(calls,1);assert.ok(ui.getByText(/Running static verification/));
     resolve(response(result));await waitFor(()=>assert.ok(ui.getByLabelText('Verification result')));

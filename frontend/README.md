@@ -1,6 +1,6 @@
 # Verisys frontend
 
-The workspace starts empty. **Analyze Repository** accepts a
+The workspace opens on Projects. **Analyze Repository** accepts a
 public GitHub repository URL/ref and loads the real backend result. Local paths are a secondary development option. It exposes EMPTY,
 ANALYZING, READY and ERROR states, with no silent fixture fallback.
 
@@ -87,3 +87,20 @@ that full SHA with expected_architecture_id to discovery and verification. UI
 shows owner/repository and short SHA, never server materialization paths. Source,
 ref or mode changes invalidate prior state. Only installed timeout verification
 executes; other candidates stay disabled. No source execution or fake result exists.
+
+## Project-centric workspace (M8)
+
+Projects is the initial landing page. Analyze Repository opens URL/ref and clear
+Proactive/On-demand cards; the concern field appears only for On-demand. One remote
+Analyze action starts analysis and grounded discovery, then opens Overview. Project
+navigation exposes Overview, Architecture and Verifications; no Runs placeholder.
+Navigation within a project does not repeat discovery or discard its latest result.
+All Projects returns to recent repositories. Switching preserves separate session
+results and aborts/ignores outstanding requests from the previous project.
+
+`lib/projects.ts` validates/version-tags and whitelists recent-project localStorage
+metadata. No raw concern, IR, discovery output, Evidence, Verdict, credentials or
+local filesystem path is stored. Invalid storage is safely ignored; unavailable
+storage leaves the session usable. Reopening after reload re-analyzes the stored
+full SHA authoritatively and requires explicit discovery. Restored On-demand
+projects require re-entering the concern. Storage is not a backend/team database.

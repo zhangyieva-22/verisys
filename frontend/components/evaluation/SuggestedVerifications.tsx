@@ -6,20 +6,30 @@ import { idleVerification, runVerification, type VerificationState } from "@/lib
 import { VerificationResult } from "./VerificationResult";
 
 import type { RepositorySource, AnalysisIntent } from "@/lib/repository-source";
-export function SuggestedVerifications({ repositoryPath, source, intent, autoDiscover = false, architectureId, onAnalyze }: { repositoryPath?: string; source?: RepositorySource; intent?: AnalysisIntent; autoDiscover?: boolean; architectureId: string; onAnalyze: () => void }) {
+export function SuggestedVerifications({ repositoryPath, source, intent, autoDiscover = false, architectureId, onAnalyze, initialDiscovery, initialVerification, onStateChange }: { repositoryPath?: string; source?: RepositorySource; intent?: AnalysisIntent; autoDiscover?: boolean; architectureId: string; onAnalyze: () => void; initialDiscovery?: DiscoveryState; initialVerification?: VerificationState; onStateChange?: (discovery: DiscoveryState, verification: VerificationState) => void }) {
   const input = source ?? repositoryPath ?? "";
   const contextKey = JSON.stringify([input, intent, architectureId]);
-  const [state, setState] = useState<DiscoveryState>(idleDiscovery);
-  const [verification, setVerification] = useState<VerificationState>(idleVerification);
+  const [state, setState] = useState<DiscoveryState>(initialDiscovery ?? idleDiscovery);
+  const [verification, setVerification] = useState<VerificationState>(initialVerification ?? idleVerification);
+  const resultPanel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (verification.status === 'RESULT' && !resultPanel.current?.closest('[hidden]')) {
+      resultPanel.current?.scrollIntoView?.({block:'start'});
+      resultPanel.current?.focus();
+    }
+  }, [verification]);
   const execution = useRef<AbortController | null>(null);
   const request = useRef<AbortController | null>(null);
+  const previousContext = useRef(contextKey);
   useEffect(() => {
-    setVerification(idleVerification); setState(idleDiscovery);
+    if (previousContext.current !== contextKey) { setVerification(idleVerification); setState(idleDiscovery); previousContext.current = contextKey; }
     return () => { request.current?.abort(); request.current = null; execution.current?.abort(); execution.current = null; };
   }, [contextKey]);
-  const autoStarted = useRef<string | null>(null);
+  const autoStarted = useRef<string | null>(initialDiscovery && initialDiscovery.status !== "IDLE" ? contextKey : null);
+  useEffect(() => { onStateChange?.(state, verification); }, [state, verification, onStateChange]);
   const discover = useCallback(async () => {
     if (request.current || execution.current) return;
+    if (intent?.mode === "ON_DEMAND" && !intent.request_text?.trim()) { onAnalyze(); return; }
     setVerification(idleVerification);
     const current = new AbortController(); request.current = current;
     setState({ status: "DISCOVERING", result: null, error: null });
@@ -56,7 +66,13 @@ export function SuggestedVerifications({ repositoryPath, source, intent, autoDis
     {state.status === "IDLE" && <p className="discovery-note">Discover grounded suggestions using the configured model. Normalized architecture metadata is sent to the provider.</p>}
     {state.status === "DISCOVERING" && <p role="status" className="discovery-note">Selecting worthwhile checks and validating their architecture grounding…</p>}
     {state.status === "ERROR" && <div role="alert" className="discovery-error" data-stale={state.stale}><p>{state.error}</p>{state.stale && <button onClick={onAnalyze}>Analyze Repository again →</button>}</div>}
-    {state.status === "EMPTY" && <p role="status" className="discovery-note">{intent?.mode === "ON_DEMAND" ? "No currently supported evaluation matches this request." : "No recommendations were selected. This does not establish that the system meets any requirement."}</p>}
+    {state.status === "EMPTY" && <p role="status" className="discovery-note">{intent?.mode === "ON_DEMAND" ? "No currently supported evaluation matches this request." : "No supported evaluation was selected. This does not establish that the system meets any requirement."}</p>}
+    <div ref={resultPanel} tabIndex={-1} className="verification-state-panel" data-verification-state={verification.status}>
+      {verification.status === "IDLE" && <p className="discovery-note">Run an available verification to collect evidence.</p>}
+      {verification.status === "RUNNING" && <p role="status">Running static verification and collecting source-backed evidence…</p>}
+      {verification.status === "ERROR" && <div role="alert" className="discovery-error"><code>{verification.code}</code><p>{verification.error}</p>{stale && <button onClick={onAnalyze}>Analyze Repository again →</button>}</div>}
+      {verification.status === "RESULT" && <VerificationResult result={verification.result} />}
+    </div>
     {state.result && <>
       <div className="discovery-context"><span>{state.result.catalog_version}</span><span title={state.result.architecture_id}>Snapshot <code>{state.result.architecture_id.slice(0, 12)}</code></span><span>Fresh server-side analysis</span></div>
       {state.result.candidates.map(item => <article className="suggestion" key={item.id}>
@@ -68,7 +84,7 @@ export function SuggestedVerifications({ repositoryPath, source, intent, autoDis
         </dl>
         {item.execution_support === "NOT_AVAILABLE" && <p className="discovery-note">Worth investigating, but Verisys cannot execute this verification yet.</p>}
         {item.execution_support === "PARTIAL" && <p className="discovery-note">Relevant to this architecture, but current executable coverage is limited.</p>}
-        <button className="primary-button" disabled={!item.can_execute || verification.status === "RUNNING" || stale} onClick={() => verify(item.id)}>{item.can_execute ? "Run Verification" : "No installed verifier"}</button>
+        <button className="primary-button" disabled={!item.can_execute || verification.status === "RUNNING" || stale} onClick={() => verify(item.id)}>{item.can_execute ? "Run Verification" : "Verification not available yet"}</button>
         <details><summary>Grounding and required evidence</summary>
           <div className="suggestion-detail"><strong>Architecture subjects</strong>{item.architecture_subject_ids.map(id => <code key={id}>{id}</code>)}
           <strong>Required evidence · not collected</strong><ul>{item.required_evidence.map(text => <li key={text}>{text}</li>)}</ul>
@@ -77,10 +93,6 @@ export function SuggestedVerifications({ repositoryPath, source, intent, autoDis
       </article>)}
       {(state.result.input_truncated || state.result.limitations.length > 0) && <details className="discovery-limitations"><summary>Discovery limitations{state.result.input_truncated ? " · input truncated" : ""}</summary>{state.result.limitations.map(text => <p key={text}>{text}</p>)}</details>}
     </>}
-    <div data-verification-state={verification.status}>
-      {verification.status === "RUNNING" && <p role="status">Running static verification and collecting source-backed evidence…</p>}
-      {verification.status === "ERROR" && <div role="alert" className="discovery-error"><code>{verification.code}</code><p>{verification.error}</p>{stale && <button onClick={onAnalyze}>Analyze Repository again →</button>}</div>}
-      {verification.status === "RESULT" && <VerificationResult result={verification.result} />}
-    </div>
+
   </section>;
 }

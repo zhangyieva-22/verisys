@@ -414,3 +414,23 @@ deduplicated. Explicit retry remains a separate user action. Verification receiv
 only the pinned source, expected architecture_id and evaluation_id; no provider call.
 The existing local-only browser-origin/loopback boundary still applies: this is not
 a hosted authenticated multi-tenant service. No private GitHub or other host support.
+
+## Project workspace presentation (M8)
+
+The frontend ProjectWorkspace owns Projects/selected-project/section/setup state.
+Overview summarizes the current API result and session discovery/result state.
+ArchitectureView retains the M2.6 System Flow and MODULE+IMPORTS presentation;
+Verifications retains existing M5/M6 discovery/execution clients and result renderer.
+The selected project's discovery controller stays mounted across section navigation,
+preventing navigation from causing another provider call. Leaving a project aborts
+browser requests and ignores late responses; it does not guarantee backend cancellation.
+
+Recent GitHub navigation metadata is versioned, bounded to 20 entries and whitelisted
+in browser localStorage. It is not architecture/result authority. On cold reopen,
+the server re-analyzes the saved full SHA and returns a fresh architecture_id; no
+provider call occurs until explicitly requested. On-demand concern text is session
+only and must be re-entered after reload. Current-session results remain separate
+per repository; re-analysis resets discovery and results. Local development paths
+are session only. There is no durable run history, so Runs navigation is absent.
+No Python, acquisition, normalization, eligible-option, verifier or Judge behavior
+is changed by this presentation milestone.

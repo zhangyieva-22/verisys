@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "../api-errors";
 import { sourceBody, type RepositorySource } from "../repository-source";
 import type { ArchitectureGraph } from "./types";
 
@@ -31,7 +32,7 @@ export async function analyzeRepository(source: RepositorySource | string): Prom
   }
   let data;
   try { data = await response.json(); } catch { throw new Error("The local analysis backend did not return a valid response."); }
-  if (!response.ok) throw new Error(typeof data?.error?.message === "string" ? data.error.message : "Repository analysis could not be completed.");
+  if (!response.ok) throw new Error(apiErrorMessage(data?.error?.code, typeof data?.error?.message === "string" ? data.error.message : "Repository analysis could not be completed."));
   if (typeof data?.architecture_id !== "string" || !/^[0-9a-f]{64}$/.test(data.architecture_id) || typeof data?.repository?.name !== "string" || !(typeof data?.repository?.path === "string" || data?.repository?.path === null) ||
     !Array.isArray(data?.graph?.nodes) || !Array.isArray(data?.graph?.edges) ||
     !Array.isArray(data?.graph?.execution_flows) || !Array.isArray(data?.graph?.limitations)) {

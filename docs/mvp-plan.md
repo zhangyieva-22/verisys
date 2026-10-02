@@ -139,3 +139,13 @@ A handoff lists scope, files/contracts changed, exact validation results, known
 limitations and next approved work. Report dirty/uncommitted work accurately.
 Never start another milestone merely because this document describes it. See
 [contributing.md](contributing.md) for branch/PR workflow and credential rules.
+
+## Implemented: M8 — project-centric multi-repository workspace
+
+Projects is the landing page. URL/ref and Proactive/On-demand setup lead to a
+repository Overview, with Architecture and Verifications as functional project
+sections. All Projects supports recent-repository switching. Browser-local recent
+metadata is navigation only; cold reopening obtains fresh pinned server analysis
+without automatic discovery. Session-only evidence/results are never persisted as
+authority. Runs is hidden pending a real history model. Domain/backend contracts
+and the single executable timeout policy remain unchanged.
