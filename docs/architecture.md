@@ -9,12 +9,12 @@ This document describes current implementation boundaries. Product intent is in
 
 Architecture presentation:
 
-Local repository → Repository Discovery → bounded static AST analysis →
+Tagged local/public GitHub source → bounded materialization → Repository Discovery → bounded static AST analysis →
 ArchitectureIR → pure ArchitectureGraph projection → local API → frontend.
 
 User-triggered evaluation discovery (M5):
 
-Local repository path → fresh safe server analysis → ArchitectureIR →
+Repository source at an immutable remote revision → fresh safe server analysis → ArchitectureIR →
 normalized subject index → deterministic eligible options →
 optional LLM option selection → strict local validation → EvaluationCandidate[] →
 Suggested Verifications.
@@ -255,7 +255,7 @@ a general cross-object resolver to shared schemas.
 
 ## Local HTTP boundary
 
-`POST /api/analyze` accepts `{"repository_path": "/absolute/local/path"}` and
+`POST /api/analyze` accepts a tagged local/GitHub source (legacy repository_path is local-only) and
 returns repository identity, ArchitectureIR, ArchitectureGraph and architecture_id
 from the existing canonical evaluation normalizer. Validation and
 sanitized errors remain in the API adapter. The Next.js proxy forwards requests
@@ -263,11 +263,11 @@ to the local backend; no implicit fixture fallback is permitted.
 
 The backend accepts the two documented localhost browser origins, rejects other
 explicit origins and should remain on loopback. This is not authentication,
-multi-tenant isolation or a production service. There is no persistence, GitHub ingestion or runtime executor.
+multi-tenant isolation or a production service. There is no persistence or runtime executor. M7 adds public GitHub archive intake.
 
 ### Suggested Verifications (M5)
 
-`POST /api/evaluations/discover` accepts repository_path and expected_architecture_id;
+`POST /api/evaluations/discover` accepts source, expected_architecture_id and selection mode;
 browser-authored IR/candidates and extra fields are rejected. It reuses safe
 server analysis and the existing M4.5 public entry point. The expected ID is only
 a freshness precondition: a mismatch with fresh normalized architecture returns
@@ -286,9 +286,9 @@ DISCOVERY_PROVIDER_FAILED, and invalid discovery output/context returns
 502/DISCOVERY_VALIDATION_FAILED. Unexpected adapter errors return sanitized
 500/DISCOVERY_FAILED. Successful empty selection is HTTP 200 with candidates [].
 
-The workspace mounts suggestions only after successful analysis. A deliberate
-Discover Verifications click starts one request; ordinary renders never call the
-provider. IDLE/DISCOVERING/READY/EMPTY/ERROR are separate. Starting any new analysis
+The workspace mounts suggestions only after successful analysis. For remote input, an explicit Analyze action starts one automatic discovery after
+analysis. Local development can use a deliberate Discover Verifications click. Ordinary
+rerenders and StrictMode replay cannot duplicate provider requests. IDLE/DISCOVERING/READY/EMPTY/ERROR are separate. Starting any new analysis
 unmounts suggestions, aborts the browser request and ignores late responses.
 Abort does not guarantee cancellation of an already-running backend/provider call.
 In-flight clicks are blocked. Discovery sends the displayed analysis ID; stale
@@ -330,7 +330,7 @@ because the roadmap mentions them. Coordinate shared contract changes through PR
 
 ## Verification execution and result experience (M6)
 
-`POST /api/evaluations/verify` accepts only repository_path, evaluation_id and
+`POST /api/evaluations/verify` accepts only source (or legacy local repository_path), evaluation_id and
 expected_architecture_id. It performs fresh safe analysis and rejects snapshot
 mismatches with 409/ANALYSIS_STALE before resolving or executing a verifier. Only
 the existing catalog/registry timeout verifier is installed. It constructs its own
@@ -357,3 +357,60 @@ states block duplicate requests. Reanalysis or new discovery clears old results;
 abort/late-response guards protect the browser, without promising backend cancellation.
 The frontend renders server-owned conclusions and source locations, with separate
 missing/unknown styling and expandable evidence/trace. No excerpts are fabricated.
+
+## Public GitHub intake and trigger modes (M7)
+
+`repository/source.py` defines a discriminated RepositorySource: local path or HTTPS
+GitHub owner/repository URL with optional ref. No schemes/hosts, credentials, ports,
+queries, fragments, tree URLs or encoded path tricks outside this grammar are accepted.
+`.git` suffix and trailing slash are canonicalized. An API request supplies exactly
+one source; old repository_path is retained for local development compatibility.
+
+`repository/github.py` owns acquisition behind an injectable materializer/fetcher.
+It constructs HTTPS api.github.com metadata/commit URLs and codeload.github.com
+archive URLs. Redirects and final hosts must match this exact allowlist. It sends no
+credentials and disables implicit proxy routing. Public metadata must confirm
+private=false. GitHub deliberately conflates private/not-found in unauthenticated
+404 responses; the controlled error preserves that ambiguity.
+
+Requested branch/tag/default branch is resolved to a full 40-character commit SHA.
+Analyze returns URL, requested_ref, resolved_commit_sha and the pinned source.
+Later requests require the full SHA and expected_architecture_id. They reacquire and
+analyze that commit, never a moving ref; mismatched architecture stops generation
+or verification. Architecture root identity is excluded by the existing normalizer;
+public remote IR uses the URL instead of the private temp root. Relative source
+references/graph facts remain unchanged. No temp path is returned to the browser.
+
+Archives are gzip tar streams, not git checkouts. Only regular files/directories
+under one archive prefix are materialized in a server-owned TemporaryDirectory.
+Traversal, absolute/backslash paths, duplicate names, symlinks, hardlinks, sparse
+and special files fail closed. No extractall, git, hooks, filters, submodule handling,
+dependency installation or source execution exists. All exits clean the temporary
+root, including provider/tool/analysis failure. Archive limitations cause acquisition
+failure rather than silently claiming a complete repository.
+
+Remote defaults (independent of Python discovery budgets): 20 MiB compressed
+response, 100 MiB extracted payload, 5 MiB per file, 10,000 archive entries,
+30-second request socket timeout plus a monotonic download deadline. Each read
+checks the deadline; a blocking read remains bounded by the socket timeout.
+Decoded tar headers/padding/trailing data are also bounded by extracted-byte budget
+plus 2048 bytes per allowed entry and 1 MiB framing allowance. Gzip footer validation
+remains enabled. Limits are configurable for offline tests.
+
+PROACTIVE preserves existing grounded discovery. ON_DEMAND supplies 1–2000 characters
+of untrusted request_text in a separate SelectionInput envelope alongside unchanged
+normalized architecture. The prompt matches only supplied eligible option IDs and
+allows empty selection. Output schema, snapshot validation, expansion and every
+candidate field remain server-owned. Request text changes selection intent, never
+architecture identity or acceptance semantics; it is not a Requirement Compiler.
+ON_DEMAND no-match is HTTP 200 with candidates=[], distinct from provider failure.
+Selecting a performance concern cannot produce latency evidence without a verifier.
+
+The URL form provides optional ref and mode; ON_DEMAND reveals the concern field.
+The resolved short SHA is visible. Input/mode changes clear prior graph/suggestions/
+results; new actions establish new snapshots. Automatic discovery is guarded against
+StrictMode replay and ordinary rerenders; in-flight analysis/discovery/execution are
+deduplicated. Explicit retry remains a separate user action. Verification receives
+only the pinned source, expected architecture_id and evaluation_id; no provider call.
+The existing local-only browser-origin/loopback boundary still applies: this is not
+a hosted authenticated multi-tenant service. No private GitHub or other host support.

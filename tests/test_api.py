@@ -22,7 +22,9 @@ def test_success_preserves_current_pipeline_and_no_flow_is_valid(tmp_path):
     assert data['architecture_id'] == normalize_architecture(ir).architecture_id
     assert data['graph'] == project_architecture_graph(ir).model_dump(mode='json')
     assert data['graph']['execution_flows'] == []
-    assert data['repository'] == {'name': tmp_path.name, 'path': str(tmp_path)}
+    assert data['repository']['name'] == tmp_path.name
+    assert data['repository']['path'] == str(tmp_path)
+    assert data['repository']['source'] == {'type': 'local', 'path': str(tmp_path)}
     assert any(node['type'] == 'API_ROUTE' for node in data['graph']['nodes'])
     assert AnalyzeResponse.model_validate(data).graph.execution_flows == []
     assert response.json() == client.post('/api/analyze', json={'repository_path': str(tmp_path)}).json()
@@ -63,7 +65,7 @@ def chat(state):
 def test_invalid_path(path):
     response = client.post('/api/analyze', json={'repository_path': path})
     assert response.status_code == 400
-    assert response.json()['error']['code'] == 'INVALID_REPOSITORY_PATH'
+    assert response.json()['error']['code'] in {'INVALID_REPOSITORY_PATH', 'INVALID_REPOSITORY_SOURCE'}
 
 
 @pytest.mark.parametrize('payload', [{}, {'repository_path': 42}, {'repository_path': '/x', 'extra': True}])

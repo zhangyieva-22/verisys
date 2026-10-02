@@ -1,3 +1,4 @@
+import { sourceBody, type RepositorySource } from "../repository-source";
 import { DiscoveryApiError } from './discovery-client';
 export type VerificationResult = {
   evaluation_id: string; evaluation_name: string; architecture_id: string;
@@ -18,10 +19,10 @@ export type VerificationState =
   | { status: 'ERROR'; result: null; error: string; code: string };
 export const idleVerification: VerificationState = { status: 'IDLE', result: null, error: null };
 const strings = (v: unknown): v is string[] => Array.isArray(v) && v.every(x => typeof x === 'string');
-export async function runVerification(path: string, id: string, architectureId: string, signal: AbortSignal): Promise<VerificationResult> {
+export async function runVerification(source: RepositorySource | string, id: string, architectureId: string, signal: AbortSignal): Promise<VerificationResult> {
   let response: Response;
   try { response = await fetch('/api/evaluations/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ repository_path: path, evaluation_id: id, expected_architecture_id: architectureId }), signal }); }
+    body: JSON.stringify({ ...sourceBody(source), evaluation_id: id, expected_architecture_id: architectureId }), signal }); }
   catch { throw new Error('Cannot reach verification. Check the local backend connection.'); }
   let d;
   try { d = await response.json(); } catch { throw new Error('Verification returned an invalid response.'); }

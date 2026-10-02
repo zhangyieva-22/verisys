@@ -15,6 +15,7 @@ async function workspace() {
 function restore() { cleanup(); globalThis.fetch = originalFetch; }
 function submit(ui: Awaited<ReturnType<typeof workspace>>) {
   fireEvent.click(ui.getByRole('button', { name: 'Analyze Repository' }));
+  fireEvent.click(ui.getByRole('button', {name:'Local path · development option'}));
   fireEvent.change(ui.getByLabelText('Local repository path'), { target: { value: '/projects/payments-api' } });
   fireEvent.click(ui.getByRole('button', { name: 'Analyze' }));
 }
@@ -32,7 +33,7 @@ test('Analyze interaction exposes loading then replaces identity and feeds API-r
     assert.equal(ui.queryByText('OFFLINE SNAPSHOT'), null);
     submit(ui);
     assert.ok(ui.getByRole('button', { name: 'Analyzing…' }).hasAttribute('disabled'));
-    assert.deepEqual(submitted, { repository_path: '/projects/payments-api' });
+    assert.deepEqual(submitted, { source: {type: 'local', path: '/projects/payments-api'} });
     resolve(new Response(JSON.stringify(result), { status: 200 }));
     await waitFor(() => assert.ok(ui.getByText('REAL ANALYSIS')));
     assert.equal(ui.getAllByText('payments-api').length, 2);

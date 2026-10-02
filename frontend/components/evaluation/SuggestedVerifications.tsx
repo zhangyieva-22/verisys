@@ -1,11 +1,14 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DiscoveryApiError, discoverVerifications, idleDiscovery, type DiscoveryState } from "@/lib/evaluation/discovery-client";
 
 import { idleVerification, runVerification, type VerificationState } from "@/lib/evaluation/verification-client";
 import { VerificationResult } from "./VerificationResult";
 
-export function SuggestedVerifications({ repositoryPath, architectureId, onAnalyze }: { repositoryPath: string; architectureId: string; onAnalyze: () => void }) {
+import type { RepositorySource, AnalysisIntent } from "@/lib/repository-source";
+export function SuggestedVerifications({ repositoryPath, source, intent, autoDiscover = false, architectureId, onAnalyze }: { repositoryPath?: string; source?: RepositorySource; intent?: AnalysisIntent; autoDiscover?: boolean; architectureId: string; onAnalyze: () => void }) {
+  const input = source ?? repositoryPath ?? "";
+  const contextKey = JSON.stringify([input, intent, architectureId]);
   const [state, setState] = useState<DiscoveryState>(idleDiscovery);
   const [verification, setVerification] = useState<VerificationState>(idleVerification);
   const execution = useRef<AbortController | null>(null);
@@ -13,25 +16,34 @@ export function SuggestedVerifications({ repositoryPath, architectureId, onAnaly
   useEffect(() => {
     setVerification(idleVerification); setState(idleDiscovery);
     return () => { request.current?.abort(); request.current = null; execution.current?.abort(); execution.current = null; };
-  }, [repositoryPath, architectureId]);
-  const discover = async () => {
+  }, [contextKey]);
+  const autoStarted = useRef<string | null>(null);
+  const discover = useCallback(async () => {
     if (request.current || execution.current) return;
     setVerification(idleVerification);
     const current = new AbortController(); request.current = current;
     setState({ status: "DISCOVERING", result: null, error: null });
     try {
-      const result = await discoverVerifications(repositoryPath, architectureId, current.signal);
+      const result = await discoverVerifications(input, architectureId, current.signal, intent);
       if (!current.signal.aborted) setState({ status: result.candidates.length ? "READY" : "EMPTY", result, error: null });
     } catch (error) {
       if (!current.signal.aborted) setState({ status: "ERROR", result: null, error: error instanceof Error ? error.message : "Discovery could not be completed.", stale: error instanceof DiscoveryApiError && error.code === "ANALYSIS_STALE" });
     } finally { if (request.current === current) request.current = null; }
-  };
+  }, [contextKey]);
+  useEffect(() => {
+    let active = true;
+    // Defer until effect setup settles; StrictMode replay cannot duplicate/abort a paid call.
+    queueMicrotask(() => {
+      if (active && autoDiscover && autoStarted.current !== contextKey) { autoStarted.current = contextKey; void discover(); }
+    });
+    return () => { active = false; };
+  }, [autoDiscover, discover, contextKey]);
   const verify = async (id: string) => {
     if (execution.current || request.current || (verification.status === "ERROR" && verification.code === "ANALYSIS_STALE")) return;
     const current = new AbortController(); execution.current = current;
     setVerification({ status: "RUNNING", result: null, error: null });
     try {
-      const result = await runVerification(repositoryPath, id, architectureId, current.signal);
+      const result = await runVerification(input, id, architectureId, current.signal);
       if (!current.signal.aborted) setVerification({ status: "RESULT", result, error: null });
     } catch (error) {
       if (!current.signal.aborted) setVerification({ status: "ERROR", result: null, error: error instanceof Error ? error.message : "Verification failed.", code: error instanceof DiscoveryApiError ? error.code : "VERIFICATION_FAILED" });
@@ -44,7 +56,7 @@ export function SuggestedVerifications({ repositoryPath, architectureId, onAnaly
     {state.status === "IDLE" && <p className="discovery-note">Discover grounded suggestions using the configured model. Normalized architecture metadata is sent to the provider.</p>}
     {state.status === "DISCOVERING" && <p role="status" className="discovery-note">Selecting worthwhile checks and validating their architecture grounding…</p>}
     {state.status === "ERROR" && <div role="alert" className="discovery-error" data-stale={state.stale}><p>{state.error}</p>{state.stale && <button onClick={onAnalyze}>Analyze Repository again →</button>}</div>}
-    {state.status === "EMPTY" && <p role="status" className="discovery-note">No recommendations were selected. This does not establish that the system meets any requirement.</p>}
+    {state.status === "EMPTY" && <p role="status" className="discovery-note">{intent?.mode === "ON_DEMAND" ? "No currently supported evaluation matches this request." : "No recommendations were selected. This does not establish that the system meets any requirement."}</p>}
     {state.result && <>
       <div className="discovery-context"><span>{state.result.catalog_version}</span><span title={state.result.architecture_id}>Snapshot <code>{state.result.architecture_id.slice(0, 12)}</code></span><span>Fresh server-side analysis</span></div>
       {state.result.candidates.map(item => <article className="suggestion" key={item.id}>

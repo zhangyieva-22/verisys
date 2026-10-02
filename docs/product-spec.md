@@ -144,3 +144,15 @@ observability, exports and re-verification may extend the same core contracts.
 They require separate scope approval and real evidence-producing tools. Aggregate
 architecture scores, generalized call graphs, distributed infrastructure and
 multi-agent product orchestration are not requirements of the current MVP.
+
+## Public repository entry and bounded requests (M7)
+
+Public GitHub URL plus optional branch/tag/commit is the primary input. The server
+resolves an immutable revision, and subsequent discovery/verification use that
+commit plus architecture_id. Local paths remain available for development/tests.
+PROACTIVE finds worthwhile catalog investigations. ON_DEMAND matches a concern
+against grounded eligible options; no match returns no supported evaluation. It
+does not compile arbitrary requirements, invent evaluations, or manufacture a
+verdict. Only the existing static timeout policy can execute. Private GitHub, OAuth,
+SSH and other providers are unsupported. Remote acquisition never runs repository
+code, installs dependencies, or retains an external checkout.

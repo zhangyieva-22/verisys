@@ -1,3 +1,4 @@
+import { sourceBody, type RepositorySource, type AnalysisIntent } from "../repository-source";
 // Manually mirrored narrow API DTO; candidate policy belongs to the backend.
 export type SuggestedVerification = {
   id: string;
@@ -42,12 +43,12 @@ function candidate(value: unknown): value is SuggestedVerification {
 export class DiscoveryApiError extends Error {
   constructor(message: string, readonly code: string) { super(message); }
 }
-export async function discoverVerifications(path: string, architectureId: string, signal: AbortSignal): Promise<DiscoveryResult> {
+export async function discoverVerifications(source: RepositorySource | string, architectureId: string, signal: AbortSignal, intent?: AnalysisIntent): Promise<DiscoveryResult> {
   let response: Response;
   try {
     response = await fetch("/api/evaluations/discover", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ repository_path: path, expected_architecture_id: architectureId }), signal,
+      body: JSON.stringify({ ...sourceBody(source), expected_architecture_id: architectureId, ...intent }), signal,
     });
   } catch {
     throw new Error("Cannot reach discovery. Check the local backend connection.");

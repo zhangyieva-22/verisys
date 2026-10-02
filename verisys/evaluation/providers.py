@@ -1,4 +1,4 @@
-"""Optional OpenAI SDK adapter. Only normalized architecture leaves this boundary."""
+"""Optional OpenAI SDK adapter. Only normalized architecture and bounded selection context leave this boundary."""
 import os
 
 from pydantic import ConfigDict, Field, SecretStr, ValidationError

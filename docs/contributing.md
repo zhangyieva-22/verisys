@@ -8,7 +8,7 @@ has local setup; [mvp-plan.md](mvp-plan.md) has current milestone status.
 
 Read the product specification and architecture before changing a layer. Inspect
 the implementation/tests rather than assuming a roadmap capability is connected.
-The local UI performs architecture analysis and user-triggered M5 discovery.
+The local UI accepts public GitHub URL/ref input with PROACTIVE or ON_DEMAND discovery (M7); local-path intake remains a development/testing option.
 M6 exposes the unchanged M4 timeout verifier through the local API/UI. Verification uses no provider; other suggested checks remain non-executable.
 
 Install dependencies in your own Python environment and use `npm ci` in frontend.
@@ -201,3 +201,14 @@ Use concise structured summaries, never hidden model chain-of-thought. Documenta
 changes should keep their responsibilities distinct: README for getting started,
 product spec for intent, architecture for implementation contracts, catalog for
 policy and milestone plan for status.
+
+## Remote intake tests (M7)
+
+Routine remote tests use bounded in-memory archives and injected fetchers/materializers;
+no network, GitHub or provider credentials are required. Tests cover host validation,
+links/traversal, byte/entry limits, stable error categories, cleanup, pinned revisions,
+selection authority and remote execution of the unchanged timeout policy.
+A public-repository smoke requires explicit authorization. Use the pinned ecommerce
+commit above, at most one live proactive selection, and controlled on-demand
+selection. Keep artifacts outside the checkout; never commit clones or credentials.
+Backend startup still uses process configuration; no implicit dotenv loading added.

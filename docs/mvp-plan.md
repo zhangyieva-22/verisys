@@ -103,6 +103,16 @@ result invalidation and controlled system errors are covered by deterministic
 API/UI tests. No provider is called during verification. Runtime verification,
 general orchestration and additional verifiers remain future work.
 
+## Implemented: M7 — public GitHub intake and analysis modes
+
+The primary URL/ref input resolves a public GitHub revision and materializes a bounded
+archive into a cleaned temporary root. Existing discovery/analyzer/verifier layers
+remain local-root consumers. PROACTIVE starts one grounded discovery; ON_DEMAND
+adds a bounded untrusted concern and selects only eligible option IDs, allowing
+no-match. Full commit SHA plus architecture_id protect follow-up requests. Only the
+existing timeout verifier executes. Local paths remain development/testing support.
+Private/OAuth/SSH/other hosts, persistent cloning and runtime execution are excluded.
+
 ## MVP acceptance and non-goals
 
 The completed product slice should make it possible to analyze a repository,
@@ -114,7 +124,7 @@ be replaced with an LLM guess. Unsupported recommendations remain explicit about
 missing execution support. Limits/unsupported scope remain visible.
 
 Current non-goals include generalized static analysis/cross-file resolution,
-GitHub URL ingestion, arbitrary requirement compilation, multi-agent/distributed
+private GitHub/other-provider ingestion, arbitrary requirement compilation, multi-agent/distributed
 orchestration, sandboxed runtime execution, k6/failure injection, Langfuse/LangSmith,
 production databases, automatic code modification and aggregate architecture scores.
 

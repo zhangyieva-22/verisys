@@ -11,7 +11,8 @@ Tool Execution → Evidence → Deterministic Verdict → Structured Trace.
 
 ## What works today
 
-- Safe, bounded local Python repository discovery and static architecture analysis.
+- Public GitHub URL intake with pinned commits and bounded archive materialization.
+- Safe, bounded Python repository discovery and static architecture analysis; local paths remain a development/testing option.
 - Source-grounded architecture components, internal imports and a limited set of
   source-declared execution flows.
 - A Next.js architecture workspace with System Flow, Dependency View and Inspector,
@@ -22,8 +23,9 @@ Tool Execution → Evidence → Deterministic Verdict → Structured Trace.
   option IDs, and strict server-controlled EvaluationCandidate construction.
 
 The UI/API expose architecture analysis and **Suggested Verifications** (M5).
-After analysis, click Discover Verifications deliberately to request grounded
-recommendations; no paid model call happens automatically. Verification execution
+Choose PROACTIVE to find important checks, or ON_DEMAND with a bounded concern.
+For GitHub input, Analyze runs one grounded discovery automatically after architecture
+analysis; choosing Analyze authorizes that configured model call. No render retries it. Verification execution
 is now available for the installed static OpenAI timeout policy (M6), with source-backed evidence, deterministic verdict and trace. Runtime verification and other suggested checks remain unavailable. See [the milestone plan](docs/mvp-plan.md).
 
 ## Local setup
@@ -47,8 +49,11 @@ npm ci
 npm run dev
 ```
 
-Open `http://127.0.0.1:3000`, choose **Analyze Repository**, and enter an absolute
-local repository path on the backend machine. No GitHub cloning is performed.
+Open `http://127.0.0.1:3000`, choose **Analyze Repository**, enter a public GitHub
+URL and optional branch/tag/commit, then select PROACTIVE or ON_DEMAND. The server
+resolves a full commit SHA and materializes a bounded archive without git checkout,
+hooks, filters, submodules or repository execution. Discovery and verification
+reacquire that exact commit. Local path intake is a secondary development option.
 Failed analysis never silently falls back to a demo. Checked-in graph snapshots
 are explicitly illustrative or offline real-repository fixtures, not live results.
 
@@ -122,7 +127,8 @@ manually exporting credentials (existing process values retain precedence):
 .venv/bin/python -m uvicorn verisys.api.app:app --host 127.0.0.1 --port 8000 --env-file .env
 ```
 
-Analyze a local repository, then click Discover Verifications. This sends bounded
+Analyze a GitHub repository in the selected mode (one automatic discovery), or use
+the local development option and click Discover Verifications explicitly. This sends bounded
 normalized metadata to the configured provider and returns validated suggestions.
 Missing configuration, provider failures and validation failures are visible errors;
 none becomes fake recommendations. Empty selection is a successful distinct state.
@@ -160,3 +166,24 @@ repository-wide contributor and coding-agent invariants.
 Keep these documents aligned with implementation. Planned behavior must be
 labeled as planned; a recommendation, architecture diagram or provider response
 is never evidence that an engineering requirement was verified.
+
+## Repository sources and on-demand limits (M7)
+
+The primary API source is tagged:
+
+```json
+{"source":{"type":"github","url":"https://github.com/owner/repository","ref":"main"}}
+```
+
+Analyze returns repository_url, requested_ref, resolved_commit_sha and architecture_id.
+Subsequent discover/verify requests send source.ref as the returned **full commit SHA**
+and expected_architecture_id. Discovery additionally accepts mode PROACTIVE, or
+ON_DEMAND with request_text (1–2000 characters). On-demand matching is limited to
+server-generated catalog options; an unmatched request returns no supported
+evaluation, never a fabricated result. Only timeout coverage has an installed verifier.
+Private repositories, OAuth, SSH and other Git providers are unsupported.
+
+Development intake uses `{"source":{"type":"local","path":"/absolute/path"}}`.
+The old repository_path-only body remains a local compatibility path; combining it
+with source is rejected. Remote temporary filesystem paths are never returned.
+Acquisition uses independent download/extraction limits; see the architecture doc.

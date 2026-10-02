@@ -41,6 +41,12 @@ class EligibleOption(DomainModel):
     architecture_summary: str
 
 
+class SelectionInput(DomainModel):
+    """Request context is untrusted data, separate from the architecture snapshot."""
+    request_text: str = Field(min_length=1, max_length=2000, strict=True)
+    architecture: "DiscoveryInput"
+
+
 class DiscoveryInput(DomainModel):
     schema_version: str = SCHEMA_VERSION
     architecture_id: str
@@ -90,7 +96,7 @@ class StructuredGenerationClient(Protocol):
     provider: str
     model: str
 
-    def generate(self, *, instructions: str, structured_input: DiscoveryInput,
+    def generate(self, *, instructions: str, structured_input: DiscoveryInput | SelectionInput,
                  response_schema: type[BaseModel]) -> StructuredGenerationResult: ...
 
 
@@ -101,3 +107,5 @@ class DiscoveryResult(DomainModel):
     limitations: list[str] = Field(default_factory=list)
     input_truncated: bool
     diagnostics: dict[str, JsonValue] = Field(default_factory=dict)
+
+SelectionInput.model_rebuild()

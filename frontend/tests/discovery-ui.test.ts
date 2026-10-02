@@ -82,7 +82,7 @@ test('new analysis invalidates recommendations, aborts in-flight requests and ig
   const analysis={architecture_id:architectureId,repository:{name:'agent',path},architecture:{},graph:demoGraph};
   globalThis.fetch=async(url,options)=>{
     if(url==='/api/analyze')return response(analysis);
-    assert.deepEqual(JSON.parse(String(options?.body)),{repository_path:path,expected_architecture_id:architectureId});
+    assert.deepEqual(JSON.parse(String(options?.body)),{source:{type:'local',path},expected_architecture_id:architectureId});
     discoveryCalls++;
     if(discoveryCalls===1)return response(result);
     abortedSignal=options?.signal;
@@ -93,7 +93,8 @@ test('new analysis invalidates recommendations, aborts in-flight requests and ig
     const ui=render(createElement(ArchitectureWorkspace));
     async function analyze(repositoryPath:string) {
       fireEvent.click(ui.getByRole('button',{name:'Analyze Repository'}));
-      fireEvent.change(ui.getByLabelText('Local repository path'),{target:{value:repositoryPath}});
+      fireEvent.click(ui.getByRole('button', {name:'Local path · development option'}));
+  fireEvent.change(ui.getByLabelText('Local repository path'),{target:{value:repositoryPath}});
       fireEvent.click(ui.getByRole('button',{name:'Analyze'}));
       await waitFor(()=>assert.ok(ui.getByRole('button',{name:'Discover Verifications'})));
     }

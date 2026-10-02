@@ -1,7 +1,7 @@
 # Verisys frontend
 
-The workspace starts empty. **Analyze Repository** accepts an absolute local
-Python repository path and loads the real backend result. It exposes EMPTY,
+The workspace starts empty. **Analyze Repository** accepts a
+public GitHub repository URL/ref and loads the real backend result. Local paths are a secondary development option. It exposes EMPTY,
 ANALYZING, READY and ERROR states, with no silent fixture fallback.
 
 Start the backend from the project root as described in the root README, then:
@@ -13,8 +13,8 @@ npm run dev
 
 Open http://127.0.0.1:3000. Next.js proxies `/api/analyze` to
 `http://127.0.0.1:8000`; set `VERISYS_BACKEND_URL` before starting Next.js to
-change the backend address. Only local paths are supported. No GitHub ingestion,
-repository history or accounts are implemented. Only the installed static timeout verifier is executable.
+change the backend address. Only public GitHub and local development paths are supported. No private/OAuth/SSH
+intake, repository history or accounts are implemented. Only the installed static timeout verifier is executable.
 
 System Flow uses `graph.execution_flows`; Dependency View filters the returned
 graph to MODULE + IMPORTS without changing the DTO. Inspectors display actual
@@ -73,3 +73,17 @@ MISSING; incomplete coverage does not hide a VIOLATED result. Empty applicable
 scope creates no fake Verdict or percentage. IDLE/RUNNING/RESULT/ERROR are separate,
 in-flight executions are deduplicated, new analysis/discovery invalidates results,
 and stale errors require explicit reanalysis. No timeout judgment is computed here.
+
+## Repository URL and modes (M7)
+
+Repository URL is primary, with an optional branch/tag/commit. PROACTIVE finds
+important engineering checks; ON_DEMAND reveals a bounded concern field. An
+explicit remote Analyze action makes one automatic discovery request after
+analysis; rerenders/StrictMode do not repeat it. Local development uses explicit
+discovery. Empty on-demand selection says no current evaluation matches.
+
+The API returns a tagged pinned source and resolved_commit_sha. Clients forward
+that full SHA with expected_architecture_id to discovery and verification. UI
+shows owner/repository and short SHA, never server materialization paths. Source,
+ref or mode changes invalidate prior state. Only installed timeout verification
+executes; other candidates stay disabled. No source execution or fake result exists.
