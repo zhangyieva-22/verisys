@@ -160,7 +160,7 @@ def test_empty_but_truncated_scope_is_unknown(tmp_path):
 def test_discovery_limits_reused_before_ingestion(tmp_path, monkeypatch):
     root = repository(tmp_path, ['client.responses.create(timeout=30)'])
     discovery, architecture, hashes = baseline(root)
-    import verisys.verification.timeout as tool
+    import verisys.verification.static_timeouts as tool
     real = tool.read_python_source
     limits_seen = []
     def reader(*args, **kwargs):

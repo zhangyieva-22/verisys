@@ -33,6 +33,8 @@ def build_options(normalized):
             summaries = {
                 'supported_openai_calls': 'Supported concrete OpenAI calls: investigate explicit per-call timeouts.',
                 'openai_wrapper_presence': 'OpenAI presence without supported concrete calls: timeout scope is uncertain.',
+                'supported_http_client_calls': 'Supported concrete requests/httpx calls: investigate finite timeouts.',
+                'http_client_presence': 'requests/httpx presence without supported concrete calls: timeout scope is uncertain.',
                 'http_api_routes': 'Detected HTTP routes: investigate latency under a defined workload; none measured.',
                 'source_declared_retry_loop': 'Source-declared conditional loop: investigate repeat-action safety; actual retries unproven.',
                 'tool_candidates_in_workflow': 'Workflow tool candidates: investigate potential side effects; effects and selection unproven.',

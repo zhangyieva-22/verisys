@@ -1,9 +1,12 @@
 """Available execution capability; lookup never executes a verifier."""
 from types import MappingProxyType
-from .run import verify_timeout_coverage
-from .timeout import POLICY_ID
+from . import http_timeout, timeout
+from .run import verify_http_timeout_coverage, verify_timeout_coverage
 
-VERIFIERS = MappingProxyType({POLICY_ID: verify_timeout_coverage})
+VERIFIERS = MappingProxyType({
+    timeout.POLICY_ID: verify_timeout_coverage,
+    http_timeout.POLICY_ID: verify_http_timeout_coverage,
+})
 
 
 def get_verifier(evaluation_id):

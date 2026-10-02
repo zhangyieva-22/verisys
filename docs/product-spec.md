@@ -39,7 +39,8 @@ Input is a repository plus an engineering requirement or claim. The system shoul
 identify a strategy, required evidence, acceptance condition and limitations.
 Examples include retry safety, latency under a defined workload and layer rules.
 
-Today only the explicit M4 OpenAI per-call timeout policy is executable. A general
+Today two static policies are executable: the M4 OpenAI per-call timeout policy and
+the `requests`/`httpx` finite timeout policy. A general
 natural-language Requirement Compiler and Verification Planner are not implemented.
 A runtime experiment described in a future plan must never be simulated by static
 analysis or an LLM.
@@ -94,11 +95,12 @@ irrelevant or unstarted case need not manufacture a verdict.
 ## First MVP boundaries
 
 The MVP targets local Python repositories, bounded static inspection, visible
-source-grounded architecture, proactive discovery and one real executable
-verification: External API Timeout Coverage.
+source-grounded architecture, proactive discovery and real executable static
+verifications: External API Timeout Coverage and HTTP Client Timeout Coverage.
 
-The only current executable grammar is explicit per-call timeout configuration
-on supported direct OpenAI calls. Presence detections for Stripe, Twilio or
+The executable grammars are explicit per-call timeout configuration on supported
+direct OpenAI calls, and finite timeouts on supported `requests`/`httpx` calls
+following each library's defaults. Presence detections for Stripe, Twilio or
 ChatOpenAI do not make their timeout semantics executable. See
 [evaluation-catalog.md](evaluation-catalog.md) for exact policy and judgment.
 
@@ -153,6 +155,6 @@ commit plus architecture_id. Local paths remain available for development/tests.
 PROACTIVE finds worthwhile catalog investigations. ON_DEMAND matches a concern
 against grounded eligible options; no match returns no supported evaluation. It
 does not compile arbitrary requirements, invent evaluations, or manufacture a
-verdict. Only the existing static timeout policy can execute. Private GitHub, OAuth,
+verdict. Only the two static timeout policies can execute. Private GitHub, OAuth,
 SSH and other providers are unsupported. Remote acquisition never runs repository
 code, installs dependencies, or retains an external checkout.

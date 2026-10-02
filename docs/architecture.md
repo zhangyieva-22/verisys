@@ -106,6 +106,11 @@ Supported bounded patterns include:
   and dynamic route construction are unresolved.
 - Import/binding-grounded OpenAI, Stripe and Twilio client/call patterns.
   Client presence references are separate from concrete supported API call sites.
+- `requests` and `httpx` as the `Outbound HTTP` service: module request functions and
+  methods on bound `Session`/`Client`/`AsyncClient` objects are call sites; imports and
+  construction are presence. Configuration objects, exceptions and client state
+  (`httpx.Timeout`, `session.headers`, `.mount`, `.close`) are neither calls nor
+  limitations; `.send()` and other unrecognized operations are limitations.
 - ChatOpenAI import/construction presence through exact `langchain_openai` bindings.
   Wrapper invoke/stream/factory behavior is not reconstructed.
 - Bare `@tool` bound to `langchain_core.tools.tool`, including aliases, yielding
@@ -114,6 +119,11 @@ Supported bounded patterns include:
   tables, active connection state or inferred database relationships.
 - Simple discovered internal imports/relative imports. Unresolved or third-party
   imports do not become internal edges; this is not a generalized dependency graph.
+
+`with` and `async with` bodies are inspected as straight-line code, and
+`with <supported constructor>(...) as <name>` binds like an assignment. Loops, `try`,
+`match`, lambdas and comprehensions remain unsupported scopes. A call on an unbound
+constructor expression, such as `requests.Session().get(...)`, is a limitation.
 
 Clear rebinding, including assignment expressions and supported attribute
 replacement, invalidates confident bindings. Known local-library collisions from
@@ -186,7 +196,8 @@ flow steps/transitions/conditions/candidates and source limitations without addi
 relationships. MODULE presence does not imply execution.
 
 Input version is `evaluation-discovery-input-v2`; prompt version is
-`evaluation-option-selection-v2`; catalog version is `engineering-evaluations-v1`.
+`evaluation-option-selection-v2`; catalog version is `engineering-evaluations-v2`.
+The catalog is part of the hashed input, so a catalog change changes every `architecture_id`.
 Default budgets: 128 subjects, 1024 objects, 512 characters per repository-derived
 string and 64 KiB canonical UTF-8 JSON including catalog/options. Trusted static
 catalog text is exempt from the repository-string cap, not the total byte cap.
@@ -313,6 +324,9 @@ registry lookup for executable capability.
   and expands candidates deterministically.
 - `verisys/verification/registry.py` maps executable evaluation IDs to verifiers.
   Lookup does not execute them; tool/evidence/judge behavior stays in verification.
+- `verisys/verification/static_timeouts.py` holds the shared static timeout inspection
+  (scope manifest, safe re-reads, hash checks, call identity); `timeout.py` (OpenAI) and
+  `http_timeout.py` (`requests`/`httpx`) are policies that only classify matched calls.
 
 Adding an evaluation and adding a verifier are separate operations. Catalog
 presence does not imply executable support. Eligibility does not belong in provider

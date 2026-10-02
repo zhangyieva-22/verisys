@@ -12,8 +12,8 @@ allowlists, required evidence, modes, execution support rules, priority, limitat
 and verifier availability. The LLM only selects eligible option IDs. It cannot
 redefine acceptance, infer capability or produce Evidence/Verdict.
 
-Catalog version: `engineering-evaluations-v1`. Exactly four entries are selectable
-in M4.5. Their default discovery priority is MEDIUM. The explicitly selected M4 run
+Catalog version: `engineering-evaluations-v2`. Five entries are selectable; v2 added
+HTTP Client Timeout Coverage to the four M4.5 entries. Their default discovery priority is MEDIUM. The explicitly selected M4 run
 has its own existing HIGH priority; that is not an LLM business ranking.
 
 ### External API Timeout Coverage
@@ -30,6 +30,19 @@ The installed verifier covers only the documented direct OpenAI per-call grammar
 Wrapper presence cannot be paired with the direct-call rationale. Fresh supported
 call scope and per-call static observations are required to verify, not merely an
 architecture summary. A candidate never establishes repository-wide coverage.
+
+### HTTP Client Timeout Coverage
+
+ID: `http-client-timeout-coverage-v1`. Category: Reliability. Mode: STATIC.
+Property: finite timeout on outbound `requests` and `httpx` calls.
+
+- `supported_http_client_calls`: `requests`/`httpx` service subjects with supported concrete
+  calls. Discovery applicability APPLICABLE; execution support SUPPORTED.
+- `http_client_presence`: `requests`/`httpx` presence without supported concrete calls.
+  Discovery applicability UNKNOWN; support PARTIAL.
+
+The installed verifier follows each library's documented defaults; see
+[the HTTP client timeout contract](#http-client-timeout-contract) below.
 
 ### Retry Safety
 
@@ -77,8 +90,8 @@ The request-specific structured-output enum contains exactly supplied option IDs
 ```
 
 Empty selection is allowed; eligible options are not returned automatically.
-The current bound is five selected options: four evaluation families, with timeout
-potentially split into direct-call and presence-only opportunities. IDs/order are
+The current bound is six selected options: five evaluation families, with both timeout
+evaluations potentially split into direct-call and presence-only opportunities. IDs/order are
 stable for identical normalized input. Inputs, including options, are bounded;
 truncation propagates honestly. No identifier is shortened into another identity.
 
@@ -147,6 +160,44 @@ Repositories should remain stable during inspection. Hash checks cover discovere
 source, including initially call-free files, but cannot guarantee an atomic snapshot
 or detect every newly introduced file/directory change.
 
+## HTTP client timeout contract
+
+Claim:
+
+> Every supported requests and httpx call site has a finite timeout.
+
+Tool: `python-static-http-timeout-v1`. Mode: STATIC. It shares the M4 scope manifest,
+safe re-reads, hash checks, exact call identity and judge rules above; only call
+classification differs. The design and its accepted decisions are in
+[http-client-timeout.md](http-client-timeout.md).
+
+Supported calls are the module functions `get`, `options`, `head`, `post`, `put`,
+`patch`, `delete` and `request` (plus `stream` for `httpx`), and the same methods on a
+simple name bound to `requests.Session()`/`requests.session()` or
+`httpx.Client(...)`/`httpx.AsyncClient(...)`, including `with`/`async with` bindings.
+
+Per-call outcomes follow each library's defaults: `requests` never times out by
+default, while `httpx` defaults to five seconds and client methods inherit the client's
+timeout. Each CONFIGURED observation records `timeout_source`: `call`, `client` or
+`library_default`.
+
+- **CONFIGURED:** a positive finite literal, a `requests` `(connect, read)` or `httpx`
+  four-element tuple of positive finite literals, or `httpx.Timeout(...)` with only
+  positive finite literal arguments, on the call; otherwise, for `httpx` only, the
+  client's positive literal timeout or the library default.
+- **MISSING:** a `requests` call without `timeout`; `None` anywhere in the effective
+  timeout (call or `httpx` client); invalid literals such as zero, negative, boolean,
+  string values or a tuple of the wrong length.
+- **UNKNOWN:** non-literal timeouts, expanded keywords, unresolved `httpx` client
+  constructors, clients whose identity differs between branches, and calls without
+  `timeout` on a `requests` session that has `.mount(...)` anywhere in the module,
+  because a custom adapter may supply a timeout.
+
+`library_default` reports the documented default of current `httpx` releases; the
+installed version is not checked. A finite timeout does not establish that its value
+is appropriate. Wrappers, adapters, `.send()` and clients passed between functions
+are not resolved.
+
 ## State and failure semantics
 
 A recommendation is an investigation opportunity, not a verification result.
@@ -157,9 +208,9 @@ Provider/API failure or invalid selection must never become successful `[]`.
 Valid empty selection succeeds. Missing key/SDK, timeout, refusal, incomplete output,
 unknown options and semantic mismatch are controlled discovery failures.
 
-The registry maps only `external-api-timeout-coverage-v1` to the existing
-`verify_timeout_coverage` entry point. Lookup describes availability and does not
-execute anything. Other entries have no verifier.
+The registry maps `external-api-timeout-coverage-v1` to `verify_timeout_coverage` and
+`http-client-timeout-coverage-v1` to `verify_http_timeout_coverage`. Lookup describes
+availability and does not execute anything. Other entries have no verifier.
 
 ## Future catalog directions
 

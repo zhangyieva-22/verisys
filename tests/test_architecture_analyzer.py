@@ -605,3 +605,145 @@ def test_read_error_does_not_expose_os_exception_text(tmp_path, monkeypatch):
     result = analyze_architecture(discovery)
     assert any("read_error" in item for item in result.limitations)
     assert "arbitrary-secret-exception-text" not in result.model_dump_json()
+
+
+def test_with_block_binds_supported_client_and_body_is_inspected(tmp_path):
+    write(tmp_path, "app.py", '''from openai import OpenAI
+with OpenAI() as client:
+    client.responses.create(model="m", input="x", timeout=3)
+''')
+    result = analyze(tmp_path)
+    assert [(loc.line, loc.column) for loc in service(result, "OpenAI").call_sites] == [(3, 4)]
+    assert not any("With" in item for item in result.limitations)
+
+
+def test_async_with_block_inside_async_function(tmp_path):
+    write(tmp_path, "app.py", '''from openai import AsyncOpenAI
+async def run():
+    async with AsyncOpenAI() as client:
+        await client.responses.create(model="m", input="x")
+''')
+    result = analyze(tmp_path)
+    assert [loc.line for loc in service(result, "OpenAI").call_sites] == [4]
+    assert not any("AsyncWith" in item for item in result.limitations)
+
+
+def test_plain_with_body_keeps_outer_bindings(tmp_path):
+    write(tmp_path, "app.py", '''import threading
+from openai import OpenAI
+client = OpenAI()
+lock = threading.Lock()
+with lock:
+    client.responses.create(model="m", input="x")
+''')
+    assert [loc.line for loc in service(analyze(tmp_path), "OpenAI").call_sites] == [6]
+
+
+def test_with_target_rebinding_clears_client_binding(tmp_path):
+    write(tmp_path, "app.py", '''from openai import OpenAI
+client = OpenAI()
+with open("f") as client:
+    client.responses.create(model="m", input="x")
+''')
+    result = analyze(tmp_path)
+    assert not service(result, "OpenAI").call_sites
+    assert any("Name reassigned" in item for item in result.limitations)
+
+
+def test_with_unpacking_target_is_not_a_client_binding(tmp_path):
+    write(tmp_path, "app.py", '''from openai import OpenAI
+client = OpenAI()
+with OpenAI() as (client, other):
+    client.responses.create(model="m", input="x")
+''')
+    result = analyze(tmp_path)
+    assert not service(result, "OpenAI").call_sites
+    assert any("requires a simple name" in item for item in result.limitations)
+
+
+def test_with_context_expression_call_is_inspected(tmp_path):
+    write(tmp_path, "app.py", '''from openai import OpenAI
+client = OpenAI()
+with client.responses.create(model="m", input="x", stream=True) as stream:
+    pass
+''')
+    assert [loc.line for loc in service(analyze(tmp_path), "OpenAI").call_sites] == [3]
+
+
+def http_calls(result, library):
+    services = [item for item in result.external_services if item.client_library == library]
+    assert all(item.name == "Outbound HTTP" for item in services)
+    return [(loc.line, loc.column) for item in services for loc in item.call_sites]
+
+
+@pytest.mark.parametrize("source,library,calls", [
+    ("import requests\nrequests.get('u')\nrequests.request('GET', 'u')\n", "requests", [(2, 0), (3, 0)]),
+    ("import requests as r\nr.post('u')\n", "requests", [(2, 0)]),
+    ("from requests import get as fetch\nfetch('u')\n", "requests", [(2, 0)]),
+    ("import requests\ns = requests.Session()\ns.put('u')\ns.delete('u')\n", "requests", [(3, 0), (4, 0)]),
+    ("import requests\nwith requests.session() as s:\n    s.head('u')\n", "requests", [(3, 4)]),
+    ("import httpx\nhttpx.get('u')\nwith httpx.stream('GET', 'u') as r:\n    pass\n", "httpx", [(2, 0), (3, 5)]),
+    ("import httpx\nwith httpx.Client(timeout=3) as c:\n    c.patch('u')\n", "httpx", [(3, 4)]),
+    ("import httpx\nasync def f():\n    async with httpx.AsyncClient() as c:\n        await c.options('u')\n", "httpx", [(4, 14)]),
+])
+def test_http_client_calls_are_detected(tmp_path, source, library, calls):
+    write(tmp_path, "app.py", source)
+    result = analyze(tmp_path)
+    assert http_calls(result, library) == calls
+    assert not any("Unsupported" in item for item in result.limitations)
+
+
+def test_http_import_and_client_construction_are_presence_only(tmp_path):
+    write(tmp_path, "app.py", "import requests\nimport httpx\ns = requests.Session()\nc = httpx.Client()\n")
+    result = analyze(tmp_path)
+    assert {item.client_library for item in result.external_services} == {"requests", "httpx"}
+    assert all(item.source_locations and not item.call_sites for item in result.external_services)
+
+
+def test_http_helpers_are_neither_calls_nor_limitations(tmp_path):
+    write(tmp_path, "app.py", '''import httpx
+import requests
+t = httpx.Timeout(5.0, connect=2.0)
+limits = httpx.Limits(max_connections=5)
+error = httpx.HTTPStatusError("x", request=None, response=None)
+s = requests.Session()
+s.headers.update({"a": "b"})
+s.mount("https://", requests.adapters.HTTPAdapter(max_retries=3))
+s.close()
+raise requests.exceptions.ConnectionError()
+''')
+    result = analyze(tmp_path)
+    assert http_calls(result, "requests") == http_calls(result, "httpx") == []
+    assert result.limitations == []
+
+
+def test_http_send_and_unknown_client_methods_are_limitations(tmp_path):
+    write(tmp_path, "app.py", '''import httpx
+c = httpx.Client()
+c.send(c.build_request("GET", "u"))
+c.fetch_everything()
+''')
+    result = analyze(tmp_path)
+    assert http_calls(result, "httpx") == []
+    assert sorted(item for item in result.limitations if "Unsupported Outbound HTTP" in item) == [
+        "app.py:3: Unsupported Outbound HTTP call pattern: send; not classified.",
+        "app.py:4: Unsupported Outbound HTTP call pattern: fetch_everything; not classified.",
+    ]
+
+
+@pytest.mark.parametrize("source", [
+    "import requests\nrequests.Session().get('u')\n",
+    "from openai import OpenAI\nOpenAI().responses.create(model='m', input='x')\n",
+])
+def test_call_on_unbound_client_expression_is_a_limitation(tmp_path, source):
+    write(tmp_path, "app.py", source)
+    result = analyze(tmp_path)
+    assert all(not item.call_sites for item in result.external_services)
+    assert "app.py:2: Call on an unbound client expression is unsupported; not classified." in result.limitations
+
+
+def test_local_requests_module_makes_http_identity_ambiguous(tmp_path):
+    write(tmp_path, "requests.py", "def get(url):\n    return url\n")
+    write(tmp_path, "app.py", "import requests\nrequests.get('u')\n")
+    result = analyze(tmp_path)
+    assert http_calls(result, "requests") == []

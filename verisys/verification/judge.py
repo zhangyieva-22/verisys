@@ -2,7 +2,8 @@
 from dataclasses import dataclass
 
 from verisys.models import Applicability, Evidence, Verdict
-from .timeout import POLICY_ID, TOOL, TimeoutStatus
+from .static_timeouts import TimeoutStatus
+from .timeout import POLICY_ID, TOOL
 
 
 @dataclass(frozen=True)
@@ -29,9 +30,10 @@ class TimeoutJudgment:
     verdict: Verdict | None
 
 
-def judge_timeouts(evidence: list[Evidence]) -> TimeoutJudgment:
+def judge_timeouts(evidence: list[Evidence], *, policy_id: str = POLICY_ID, tool: str = TOOL) -> TimeoutJudgment:
+    """The same decision rules for every static timeout policy; only provenance differs."""
     ids = [item.id for item in evidence]
-    if len(ids) != len(set(ids)) or any(item.tool != TOOL or item.type != "STATIC_ANALYSIS" for item in evidence):
+    if len(ids) != len(set(ids)) or any(item.tool != tool or item.type != "STATIC_ANALYSIS" for item in evidence):
         raise ValueError("Invalid timeout evidence provenance or duplicate IDs")
     scopes = [item for item in evidence if item.observed_value.get("kind") == "scope"]
     calls = [item for item in evidence if item.observed_value.get("kind") == "call"]
@@ -39,7 +41,7 @@ def judge_timeouts(evidence: list[Evidence]) -> TimeoutJudgment:
         raise ValueError("Exactly one scope observation and its call observations are required")
     scope = scopes[0]
     manifest = scope.observed_value
-    if manifest.get("policy") != POLICY_ID or manifest.get("call_evidence_ids") != [item.id for item in calls]:
+    if manifest.get("policy") != policy_id or manifest.get("call_evidence_ids") != [item.id for item in calls]:
         raise ValueError("Call evidence must match the inspected scope manifest")
     statuses = [TimeoutStatus(item.observed_value["timeout_status"]) for item in calls]
     counts = TimeoutCounts(*(statuses.count(status) for status in TimeoutStatus))
@@ -56,7 +58,7 @@ def judge_timeouts(evidence: list[Evidence]) -> TimeoutJudgment:
     limitations = list(scope.limitations)
     if counts.unknown or not complete:
         limitations.append("Overall timeout coverage is incomplete; unknown calls are not missing calls.")
-    verdict = Verdict(status=status, requirement_id=POLICY_ID, evidence_ids=ids,
+    verdict = Verdict(status=status, requirement_id=policy_id, evidence_ids=ids,
                       expected={"ratio": 1.0, "unknown": 0, "scope_complete": True},
                       observed=counts.observed(complete), summary=rule, limitations=limitations)
     return TimeoutJudgment(applicability, counts, verdict)
