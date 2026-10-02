@@ -104,3 +104,14 @@ local filesystem path is stored. Invalid storage is safely ignored; unavailable
 storage leaves the session usable. Reopening after reload re-analyzes the stored
 full SHA authoritatively and requires explicit discovery. Restored On-demand
 projects require re-entering the concern. Storage is not a backend/team database.
+
+The selected-project Overview is a concise engineering assessment: grounded system
+brief, scope, declared flow, semantic components, technical/operational context,
+verification status and next actions. It uses deterministic frontend presentation
+only. Technical assessment comes from validated candidates; operational context
+never implies a verification or compliance conclusion. Detailed source inspection
+stays in Architecture and execution/evidence stays in Verifications.
+
+The `/` route introduces Verisys and links to `/projects`, which hosts the existing
+project workspace. The product homepage is static and makes no analysis,
+discovery, or verification requests.

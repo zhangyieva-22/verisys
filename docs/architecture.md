@@ -434,3 +434,15 @@ per repository; re-analysis resets discovery and results. Local development path
 are session only. There is no durable run history, so Runs navigation is absent.
 No Python, acquisition, normalization, eligible-option, verifier or Judge behavior
 is changed by this presentation milestone.
+
+### Overview assessment presentation
+
+The selected-project Overview deterministically summarizes the existing graph
+projection and validated evaluation/result state. Transition groups copy supplied
+ExecutionFlow relationships; imports are never rendered as runtime paths.
+Technical items show candidate reasons and readable mappings of canonical status.
+Non-technical items describe conservative context tied to detected tools, datastores,
+retry branches or runtime evaluations; they do not establish governance or compliance.
+Recommendations use installed capability and recorded results only. No presentation
+provider call is added. Detailed execution, Evidence and Trace remain in Verifications.
+The completion count describes the single retained session result, not run history.
