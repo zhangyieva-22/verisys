@@ -1,4 +1,5 @@
 import type { VerificationResult as Result } from '@/lib/evaluation/verification-client';
+import { savedNote } from '@/lib/stored';
 
 // Where a finite timeout comes from; absent for MISSING/UNKNOWN and for policies that only accept per-call values.
 const TIMEOUT_SOURCES: Record<string, string> = {
@@ -7,9 +8,10 @@ const TIMEOUT_SOURCES: Record<string, string> = {
   library_default: 'Relies on the httpx 5-second default',
 };
 
-export function VerificationResult({ result }: { result: Result }) {
+export function VerificationResult({ result, onRerun }: { result: Result; onRerun?: () => void }) {
   return <section className="verification-result" aria-label="Verification result">
     <header><span>STATIC VERIFICATION RESULT</span><h3>{result.evaluation_name}</h3></header>
+    {savedNote(result.stored) && <p className="saved-note">{savedNote(result.stored)}{onRerun && <button onClick={onRerun}>Re-run verification</button>}</p>}
     <div className={`verification-outcome result-status ${(result.verdict_status ?? result.applicability).toLowerCase()}`}>{result.verdict_status ?? result.applicability}</div>
     <dl className="suggestion-labels"><div><dt>Applicability</dt><dd>{result.applicability}</dd></div>
       <div><dt>Execution</dt><dd>{result.execution_status}</dd></div><div><dt>Mode</dt><dd>{result.verification_mode}</dd></div>

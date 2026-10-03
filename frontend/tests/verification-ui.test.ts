@@ -50,7 +50,7 @@ test('installed capability allows UNKNOWN/PARTIAL; running deduplicates and resu
     assert.equal(calls,1);assert.ok(ui.getByText(/Running static verification/));
     resolve(response(result));await waitFor(()=>assert.ok(ui.getByLabelText('Verification result')));
     assert.ok(ui.getByText('Definitive coverage: 66.7%'));
-    fireEvent.click(ui.getByText('Discover Verifications'));assert.equal(ui.queryByLabelText('Verification result'),null);
+    fireEvent.click(ui.getByText('Regenerate'));assert.equal(ui.queryByLabelText('Verification result'),null);
   }finally{restore();}
 });
 for(const code of ['VERIFICATION_FAILED','VERIFICATION_UNSUPPORTED','ANALYSIS_FAILED','VERIFICATION_BAD_REQUEST','ANALYSIS_STALE']){

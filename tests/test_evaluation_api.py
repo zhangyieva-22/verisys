@@ -66,7 +66,7 @@ def test_grounded_success_server_fields_and_narrow_response(repository):
     response = request(repository, generator)
     assert response.status_code == 200
     data = response.json()
-    assert set(data) == {'candidates', 'architecture_id', 'catalog_version', 'limitations', 'input_truncated'}
+    assert set(data) == {'candidates', 'architecture_id', 'catalog_version', 'limitations', 'input_truncated', 'stored'}
     assert data['architecture_id'] == generator.inputs[0].architecture_id
     assert len(generator.inputs) == 1
     assert len(data['candidates']) == 2

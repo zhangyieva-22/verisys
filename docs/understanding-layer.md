@@ -92,4 +92,4 @@ The enrichment request is held by the project session, so leaving the Architectu
 - The model cannot add files to its input or see anything outside the selected excerpts.
 - Sending code to the model provider is a data-sharing decision: excerpts can contain proprietary logic, and redaction can miss secrets.
   Use it only on repositories whose code you may send to the configured provider.
-- Results are session-only, like discovery and verification results.
+- Results are saved locally and reused for the same pinned commit, `architecture_id`, model and prompt version; local-path requests always run again. See [saved results](architecture.md#saved-results).

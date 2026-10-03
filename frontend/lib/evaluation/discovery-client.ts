@@ -1,5 +1,6 @@
 import { apiErrorMessage } from "../api-errors";
 import { sourceBody, type RepositorySource, type AnalysisIntent } from "../repository-source";
+import { refreshBody, validStored, type StoredResult } from "../stored";
 // Manually mirrored narrow API DTO; candidate policy belongs to the backend.
 export type SuggestedVerification = {
   id: string;
@@ -21,6 +22,7 @@ export type DiscoveryResult = {
   catalog_version: string;
   limitations: string[];
   input_truncated: boolean;
+  stored?: StoredResult | null;
 };
 export type DiscoveryState =
   | { status: "IDLE" | "DISCOVERING"; result: null; error: null }
@@ -44,12 +46,12 @@ function candidate(value: unknown): value is SuggestedVerification {
 export class DiscoveryApiError extends Error {
   constructor(message: string, readonly code: string) { super(message); }
 }
-export async function discoverVerifications(source: RepositorySource | string, architectureId: string, signal: AbortSignal, intent?: AnalysisIntent): Promise<DiscoveryResult> {
+export async function discoverVerifications(source: RepositorySource | string, architectureId: string, signal: AbortSignal, intent?: AnalysisIntent, refresh = false): Promise<DiscoveryResult> {
   let response: Response;
   try {
     response = await fetch("/api/evaluations/discover", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...sourceBody(source), expected_architecture_id: architectureId, ...intent }), signal,
+      body: JSON.stringify({ ...sourceBody(source), expected_architecture_id: architectureId, ...intent, ...refreshBody(refresh) }), signal,
     });
   } catch {
     throw new Error("Cannot reach discovery. Check the local backend connection.");
@@ -60,7 +62,7 @@ export async function discoverVerifications(source: RepositorySource | string, a
   if (!response.ok) throw new DiscoveryApiError(apiErrorMessage(data?.error?.code, typeof data?.error?.message === "string" ? data.error.message : "Discovery could not be completed."), typeof data?.error?.code === "string" ? data.error.code : "DISCOVERY_FAILED");
   if (!Array.isArray(data?.candidates) || !data.candidates.every(candidate) ||
     typeof data.architecture_id !== "string" || typeof data.catalog_version !== "string" ||
-    typeof data.input_truncated !== "boolean" || !strings(data.limitations)) {
+    typeof data.input_truncated !== "boolean" || !strings(data.limitations) || !validStored(data.stored)) {
     throw new Error("Discovery returned an invalid response.");
   }
   if (data.architecture_id !== architectureId) throw new DiscoveryApiError(

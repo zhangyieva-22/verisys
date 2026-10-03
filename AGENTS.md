@@ -53,6 +53,9 @@ architecture constraints and runtime behavior. It is not limited to NFRs.
   endpoint and the architecture workspace. M6 adds explicit timeout execution
   and source-backed results through the local API/UI, reusing the M4 Python core.
   Execution uses no LLM; all other suggested verifications remain non-executable.
+- Successful discovery, verification and understanding results are saved under
+  `~/.verisys/results` and reused only for identical inputs; source-dependent results
+  are reused only for pinned GitHub commits. See docs/architecture.md#saved-results.
 - General orchestration, requirement compilation and runtime verification remain
   future work. See the milestone plan rather than inventing scaffolding.
 

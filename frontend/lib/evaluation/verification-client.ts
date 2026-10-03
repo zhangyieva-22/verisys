@@ -1,6 +1,7 @@
 import { apiErrorMessage } from "../api-errors";
 import { sourceBody, type RepositorySource } from "../repository-source";
 import { DiscoveryApiError } from './discovery-client';
+import { refreshBody, validStored, type StoredResult } from '../stored';
 export type VerificationResult = {
   evaluation_id: string; evaluation_name: string; architecture_id: string;
   applicability: 'APPLICABLE' | 'NOT_APPLICABLE' | 'UNKNOWN';
@@ -13,6 +14,7 @@ export type VerificationResult = {
     source_location: { file: string; line: number; column: number | null } | null;
     observation: Record<string, unknown>; limitations: string[] }[];
   limitations: string[]; trace: { type: string; stage: string; summary: string; evidence_ids: string[] }[];
+  stored?: StoredResult | null;
 };
 export type VerificationState =
   | { status: 'IDLE' | 'RUNNING'; result: null; error: null }
@@ -20,15 +22,15 @@ export type VerificationState =
   | { status: 'ERROR'; result: null; error: string; code: string };
 export const idleVerification: VerificationState = { status: 'IDLE', result: null, error: null };
 const strings = (v: unknown): v is string[] => Array.isArray(v) && v.every(x => typeof x === 'string');
-export async function runVerification(source: RepositorySource | string, id: string, architectureId: string, signal: AbortSignal): Promise<VerificationResult> {
+export async function runVerification(source: RepositorySource | string, id: string, architectureId: string, signal: AbortSignal, refresh = false): Promise<VerificationResult> {
   let response: Response;
   try { response = await fetch('/api/evaluations/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...sourceBody(source), evaluation_id: id, expected_architecture_id: architectureId }), signal }); }
+    body: JSON.stringify({ ...sourceBody(source), evaluation_id: id, expected_architecture_id: architectureId, ...refreshBody(refresh) }), signal }); }
   catch { throw new Error('Cannot reach verification. Check the local backend connection.'); }
   let d;
   try { d = await response.json(); } catch { throw new Error('Verification returned an invalid response.'); }
   if (!response.ok) throw new DiscoveryApiError(apiErrorMessage(d?.error?.code, typeof d?.error?.message === 'string' ? d.error.message : 'Verification failed.'), typeof d?.error?.code === 'string' ? d.error.code : 'VERIFICATION_FAILED');
-  if (!d || d.evaluation_id !== id || typeof d.evaluation_name !== 'string' || typeof d.summary !== 'string' || typeof d.policy !== 'string' ||
+  if (!d || d.evaluation_id !== id || !validStored(d.stored) || typeof d.evaluation_name !== 'string' || typeof d.summary !== 'string' || typeof d.policy !== 'string' ||
     !['APPLICABLE','NOT_APPLICABLE','UNKNOWN'].includes(d.applicability) ||
     !['PENDING','RUNNING','COMPLETED','FAILED','NOT_RUN'].includes(d.execution_status) || d.verification_mode !== 'STATIC' ||
     ![null,'VERIFIED','VIOLATED','NOT_VERIFIABLE'].includes(d.verdict_status) ||

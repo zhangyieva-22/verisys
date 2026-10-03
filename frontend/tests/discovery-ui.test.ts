@@ -138,7 +138,7 @@ test('stale analysis clears suggestions and prompts explicit reanalysis without 
     const ui=render(createElement(SuggestedVerifications,{...props,onAnalyze:()=>{analyses++;}}));
     fireEvent.click(ui.getByRole('button',{name:'Discover Verifications'}));
     await waitFor(()=>assert.ok(ui.getByText('API Latency')));
-    fireEvent.click(ui.getByRole('button',{name:'Discover Verifications'}));
+    fireEvent.click(ui.getByRole('button',{name:'Regenerate'}));
     await waitFor(()=>assert.equal(ui.getByRole('alert').getAttribute('data-stale'),'true'));
     assert.equal(ui.queryByText('API Latency'),null);
     assert.ok(ui.getByRole('button',{name:'Discover Verifications'}).hasAttribute('disabled'));
