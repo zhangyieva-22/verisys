@@ -207,5 +207,13 @@ Recent GitHub projects are lightweight browser-local navigation metadata (up to
 20 repositories), not authoritative persistence or a production team database.
 A reload restores names/revisions only; Open Project obtains fresh server analysis
 at the saved commit, without an automatic paid discovery. Discover explicitly, or
-re-analyze with a new concern. Architecture, suggestions, evidence and results live
-only in the current session. Local development paths are never persisted.
+re-analyze with a new concern. The browser stores navigation only; local development
+paths are never stored in the browser.
+
+The backend saves Suggested Verifications, verification results and Understanding
+results to `~/.verisys/results` (or `VERISYS_RESULTS_DIR`) and reuses them for an
+identical later request: same pinned commit, `architecture_id`, parameters, model and
+prompt version. Discovery is also reused for local paths; verification and
+Understanding read source bytes, so for local paths they always run again. Use
+Regenerate or Re-run verification to bypass a saved result. See
+[the architecture notes](docs/architecture.md#saved-results).

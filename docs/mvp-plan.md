@@ -146,8 +146,8 @@ Projects is the landing page. URL/ref and Proactive/On-demand setup lead to a
 repository Overview, with Architecture and Verifications as functional project
 sections. All Projects supports recent-repository switching. Browser-local recent
 metadata is navigation only; cold reopening obtains fresh pinned server analysis
-without automatic discovery. Session-only evidence/results are never persisted as
-authority. Runs is hidden pending a real history model. Domain/backend contracts
+without automatic discovery. Saved results are reused only for identical
+immutable inputs and are never a new run's evidence. Runs is hidden pending a real history model. Domain/backend contracts
 and the single executable timeout policy remain unchanged.
 
 ## Implemented: HTTP client timeout coverage

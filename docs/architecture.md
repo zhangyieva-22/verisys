@@ -480,3 +480,27 @@ redacted excerpts in one opt-in model call; see [understanding-layer.md](underst
 
 Discovery records documentation paths in `DiscoveryResult.documents` without reading
 them. Documents never change source scope, limitations, truncation or `architecture_id`.
+
+## Saved results
+
+`verisys/store/results.py` saves successful Suggested Verifications, verification
+results and Understanding results as JSON files under `~/.verisys/results/<kind>/`
+(override with `VERISYS_RESULTS_DIR`), outside every repository. Directories are 0700
+and files 0600; writes are atomic. Diagram enrichment is not saved.
+
+A result is reused only when every input that determines it matches. The key holds
+the source identity (GitHub URL and full commit SHA, or local path), `architecture_id`,
+operation parameters (mode, request text, evaluation ID) and the model, prompt, input
+or catalog version. The full key is stored in the file and compared on read, and a
+missing, corrupt, oversized or no-longer-valid file is treated as a miss.
+
+- Discovery input is the normalized architecture alone, so it is reused for GitHub and
+  local sources. Execution capability (`can_execute`) is recomputed on every reuse.
+- Verification and Understanding read source bytes that `architecture_id` does not
+  fully cover, so they are reused only for a GitHub commit pinned to a full SHA; local
+  runs are saved but always run again.
+- For pinned GitHub sources the lookup happens before acquisition, so a reused result
+  needs no download, analysis or model call.
+- Requests accept `refresh: true` to bypass the saved result; responses report
+  `stored: {reused, saved_at}`. A saved result is a reproduction of an earlier run,
+  never new Evidence, and saving failures never fail a request.

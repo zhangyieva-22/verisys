@@ -23,6 +23,49 @@ from verisys.models.enums import Applicability, ExecutionSupport, VerificationMo
 from verisys.evaluation import (DiscoveryError, StructuredGenerationClient, OpenAIClient,
                                 OpenAIConfig, discover_evaluations, normalize_architecture)
 from verisys.understanding import DiagramEnrichment, UnderstandingResult, enrich_diagram, understand_repository
+from verisys.understanding.contracts import INPUT_VERSION as UNDERSTANDING_INPUT_VERSION, PROMPT_VERSION as UNDERSTANDING_PROMPT_VERSION
+from verisys.evaluation.catalog import CATALOG_VERSION
+from verisys.evaluation.contracts import PROMPT_VERSION as DISCOVERY_PROMPT_VERSION
+from verisys.store import ResultStore
+
+
+class StoredResult(DomainModel):
+    """Whether this response reuses a saved result, and when that result was saved."""
+    reused: bool
+    saved_at: str | None = None
+
+
+def result_store() -> ResultStore:
+    return ResultStore()
+
+
+def immutable_identity(source) -> dict | None:
+    """Only a GitHub source pinned to a full SHA cannot change under a saved result."""
+    if isinstance(source, GitHubRepositorySource) and source.ref and re.fullmatch(SHA_PATTERN, source.ref):
+        return {"type": "github", "url": source.url, "commit": source.ref}
+    return None
+
+
+def source_identity(source) -> dict:
+    return immutable_identity(source) or {"type": "local", "path": str(Path(source.path))}
+
+
+def reuse(store: ResultStore, kind: str, key: dict, model):
+    """A validated saved response, or None on a miss or an invalid file."""
+    found = store.get(kind, key)
+    if found is None:
+        return None
+    payload, saved_at = found
+    try:
+        return model.model_validate({**payload, "stored": {"reused": True, "saved_at": saved_at}})
+    except ValidationError:
+        return None
+
+
+def save(store: ResultStore, kind: str, key: dict, response):
+    saved_at = store.put(kind, key, response.model_dump(mode="json", exclude={"stored"}))
+    response.stored = StoredResult(reused=False, saved_at=saved_at)
+    return response
 
 
 class AnalyzeRequest(DomainModel):
@@ -42,6 +85,7 @@ class AnalyzeRequest(DomainModel):
 
 class EvaluationDiscoveryRequest(AnalyzeRequest):
     expected_architecture_id: str = Field(pattern=r"^[0-9a-f]{64}$", strict=True)
+    refresh: bool = Field(default=False, strict=True)
     mode: Literal["PROACTIVE", "ON_DEMAND"] = "PROACTIVE"
     request_text: str | None = Field(default=None, min_length=1, max_length=2000, strict=True)
 
@@ -194,6 +238,19 @@ class EvaluationDiscoveryResponse(DomainModel):
     catalog_version: str
     limitations: list[str]
     input_truncated: bool
+    stored: StoredResult | None = None
+
+
+def can_execute(evaluation_id: str) -> bool:
+    definition = CATALOG.get(evaluation_id)
+    return bool(definition and definition.verifier_available and get_verifier(evaluation_id) is not None)
+
+
+def with_capability(response: EvaluationDiscoveryResponse) -> EvaluationDiscoveryResponse:
+    """Execution capability is the server's current state, never trusted from a saved result."""
+    for candidate in response.candidates:
+        candidate.can_execute = can_execute(candidate.id)
+    return response
 
 
 def discovery_client() -> StructuredGenerationClient:
@@ -219,26 +276,40 @@ def discovery_error(code: str) -> JSONResponse:
 
 @app.post("/api/evaluations/discover", response_model=EvaluationDiscoveryResponse)
 def evaluations_discover(request: EvaluationDiscoveryRequest, client: StructuredGenerationClient = Depends(discovery_client),
-                         materializer=Depends(repository_materializer)):
+                         materializer=Depends(repository_materializer), store: ResultStore = Depends(result_store)):
     source = request.repository_source()
     require_pinned(source)
+    # Discovery input is the normalized architecture only, so architecture_id plus the
+    # request, model and versions fully determine it, for local and GitHub sources alike.
+    def key(architecture_id):
+        return {"source": source_identity(source), "architecture_id": architecture_id, "mode": request.mode,
+                "request_text": request.request_text, "model": str(client.model), "catalog_version": CATALOG_VERSION,
+                "prompt_version": DISCOVERY_PROMPT_VERSION}
+    if immutable_identity(source) and not request.refresh:
+        saved = reuse(store, "discovery", key(request.expected_architecture_id), EvaluationDiscoveryResponse)
+        if saved is not None:
+            return with_capability(saved)
     with materializer.materialize(source) as repository:
         result = analyze_root(repository)
         if isinstance(result, JSONResponse):
             return result
         if result.architecture_id != request.expected_architecture_id:
             return error(409, "ANALYSIS_STALE", "The repository changed since the displayed analysis. Analyze the repository again before discovering verifications.")
+        if not request.refresh:
+            saved = reuse(store, "discovery", key(result.architecture_id), EvaluationDiscoveryResponse)
+            if saved is not None:
+                return with_capability(saved)
         try:
             discovered = discover_evaluations(result.architecture, client, request_text=request.request_text)
             fields = set(SuggestedVerification.model_fields)
-            return EvaluationDiscoveryResponse(
+            return save(store, "discovery", key(result.architecture_id), EvaluationDiscoveryResponse(
                 candidates=[SuggestedVerification.model_validate({**candidate.model_dump(include=fields),
-                    "can_execute": bool(CATALOG[candidate.id].verifier_available and get_verifier(candidate.id) is not None)})
+                                                                  "can_execute": can_execute(candidate.id)})
                             for candidate in discovered.candidates],
                 architecture_id=discovered.architecture_id,
                 catalog_version=discovered.catalog_version,
                 limitations=discovered.limitations, input_truncated=discovered.input_truncated,
-            )
+            ))
         except DiscoveryError as failure:
             return discovery_error(failure.code)
         except Exception:
@@ -255,12 +326,26 @@ async def configuration_error(request: Request, exception: DiscoveryError):
 class VerificationRequest(AnalyzeRequest):
     expected_architecture_id: str = Field(pattern=r"^[0-9a-f]{64}$", strict=True)
     evaluation_id: str = Field(min_length=1, max_length=128, strict=True)
+    refresh: bool = Field(default=False, strict=True)
 
 
-@app.post("/api/evaluations/verify", response_model=VerificationResult)
-def evaluations_verify(request: VerificationRequest, materializer=Depends(repository_materializer)):
+class VerificationResponse(VerificationResult):
+    stored: StoredResult | None = None
+
+
+@app.post("/api/evaluations/verify", response_model=VerificationResponse)
+def evaluations_verify(request: VerificationRequest, materializer=Depends(repository_materializer),
+                       store: ResultStore = Depends(result_store)):
     source = request.repository_source()
     require_pinned(source)
+    # Verification reads source bytes that architecture_id does not fully cover, so a saved
+    # result is reused only for an immutable pinned commit; local runs are saved, never reused.
+    key = {"source": source_identity(source), "architecture_id": request.expected_architecture_id,
+           "evaluation_id": request.evaluation_id, "catalog_version": CATALOG_VERSION}
+    if immutable_identity(source) and not request.refresh:
+        saved = reuse(store, "verification", key, VerificationResponse)
+        if saved is not None:
+            return saved
     with materializer.materialize(source) as repository:
         result = analyze_root(repository)
         if isinstance(result, JSONResponse):
@@ -275,7 +360,7 @@ def evaluations_verify(request: VerificationRequest, materializer=Depends(reposi
             run = verifier(repository.root)
             if normalize_architecture(run.architecture).architecture_id != request.expected_architecture_id:
                 return error(409, "ANALYSIS_STALE", "The repository changed during verification. Analyze the repository again.")
-            return project_result(run, result.architecture_id)
+            return save(store, "verification", key, VerificationResponse(**project_result(run, result.architecture_id).model_dump()))
         except Exception:
             return error(500, "VERIFICATION_FAILED", "The verification tool could not complete. No engineering verdict is available.")
 
@@ -284,6 +369,11 @@ def evaluations_verify(request: VerificationRequest, materializer=Depends(reposi
 # source and documentation excerpts to the configured model. Never part of analysis.
 class UnderstandingRequest(AnalyzeRequest):
     expected_architecture_id: str = Field(pattern=r"^[0-9a-f]{64}$", strict=True)
+    refresh: bool = Field(default=False, strict=True)
+
+
+class UnderstandingResponse(UnderstandingResult):
+    stored: StoredResult | None = None
 
 
 def understanding_client() -> StructuredGenerationClient:
@@ -331,10 +421,22 @@ def run_opt_in(request: UnderstandingRequest, client, materializer, operation, p
             return error(500, f"{prefix}_FAILED", "This operation could not be completed. No inferred content was produced.")
 
 
-@app.post("/api/understanding", response_model=UnderstandingResult)
+@app.post("/api/understanding", response_model=UnderstandingResponse)
 def understanding(request: UnderstandingRequest, client: StructuredGenerationClient = Depends(understanding_client),
-                  materializer=Depends(repository_materializer)):
-    return run_opt_in(request, client, materializer, understand_repository, "UNDERSTANDING")
+                  materializer=Depends(repository_materializer), store: ResultStore = Depends(result_store)):
+    source = request.repository_source()
+    require_pinned(source)
+    # Excerpts are raw source bytes: reuse only for an immutable pinned commit.
+    key = {"source": source_identity(source), "architecture_id": request.expected_architecture_id,
+           "model": str(client.model), "prompt_version": UNDERSTANDING_PROMPT_VERSION, "input_version": UNDERSTANDING_INPUT_VERSION}
+    if immutable_identity(source) and not request.refresh:
+        saved = reuse(store, "understanding", key, UnderstandingResponse)
+        if saved is not None:
+            return saved
+    result = run_opt_in(request, client, materializer, understand_repository, "UNDERSTANDING")
+    if isinstance(result, JSONResponse):
+        return result
+    return save(store, "understanding", key, UnderstandingResponse(**result.model_dump()))
 
 
 # Detected diagram layers come from the analysis graph; this adds inferred components only.

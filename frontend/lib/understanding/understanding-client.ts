@@ -1,5 +1,6 @@
 import { apiErrorMessage } from "../api-errors";
 import { sourceBody, type RepositorySource } from "../repository-source";
+import { refreshBody, validStored, type StoredResult } from "../stored";
 // Manually mirrored API DTO. Every claim is model-inferred and never verified.
 export type ExcerptKind = "README" | "DOCUMENT" | "MANIFEST" | "ROUTE_SOURCE" | "INTEGRATION_SOURCE" | "ENTRY_POINT" | "TEST_INDEX";
 export type Citation = { path: string; start_line: number; end_line: number; quote: string; excerpt_kind: ExcerptKind };
@@ -11,6 +12,7 @@ export type UnderstandingResult = {
   architecture_id: string; provider: string; model: string; prompt_version: string;
   functional_requirements: InferredRequirement[]; risks: InferredRisk[]; sources: SourceSummary[];
   limitations: string[]; input_truncated: boolean; rejected_claims: number; rejected_citations: number;
+  stored?: StoredResult | null;
 };
 export type UnderstandingState =
   | { status: "IDLE" | "GENERATING"; result: null; error: null }
@@ -44,17 +46,17 @@ export function validUnderstanding(data: unknown): data is UnderstandingResult {
     Array.isArray(data.functional_requirements) && data.functional_requirements.every(claim) &&
     Array.isArray(data.risks) && data.risks.every(risk) && Array.isArray(data.sources) && data.sources.every(source) &&
     Array.isArray(data.limitations) && data.limitations.every(item => typeof item === "string") &&
-    typeof data.input_truncated === "boolean" && count(data.rejected_claims) && count(data.rejected_citations);
+    typeof data.input_truncated === "boolean" && count(data.rejected_claims) && count(data.rejected_citations) && validStored(data.stored);
 }
 export class UnderstandingApiError extends Error {
   constructor(message: string, readonly code: string) { super(message); }
 }
-export async function generateUnderstanding(source: RepositorySource | string, architectureId: string, signal: AbortSignal): Promise<UnderstandingResult> {
+export async function generateUnderstanding(source: RepositorySource | string, architectureId: string, signal: AbortSignal, refresh = false): Promise<UnderstandingResult> {
   let response: Response;
   try {
     response = await fetch("/api/understanding", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...sourceBody(source), expected_architecture_id: architectureId }), signal,
+      body: JSON.stringify({ ...sourceBody(source), expected_architecture_id: architectureId, ...refreshBody(refresh) }), signal,
     });
   } catch {
     throw new Error("Cannot reach the understanding service. Check the local backend connection.");

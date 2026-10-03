@@ -6,6 +6,7 @@ import { idleVerification, runVerification, type VerificationState } from "@/lib
 import { VerificationResult } from "./VerificationResult";
 
 import type { RepositorySource, AnalysisIntent } from "@/lib/repository-source";
+import { savedNote } from "@/lib/stored";
 export function SuggestedVerifications({ repositoryPath, source, intent, autoDiscover = false, architectureId, onAnalyze, initialDiscovery, initialVerification, onStateChange }: { repositoryPath?: string; source?: RepositorySource; intent?: AnalysisIntent; autoDiscover?: boolean; architectureId: string; onAnalyze: () => void; initialDiscovery?: DiscoveryState; initialVerification?: VerificationState; onStateChange?: (discovery: DiscoveryState, verification: VerificationState) => void }) {
   const input = source ?? repositoryPath ?? "";
   const contextKey = JSON.stringify([input, intent, architectureId]);
@@ -27,14 +28,14 @@ export function SuggestedVerifications({ repositoryPath, source, intent, autoDis
   }, [contextKey]);
   const autoStarted = useRef<string | null>(initialDiscovery && initialDiscovery.status !== "IDLE" ? contextKey : null);
   useEffect(() => { onStateChange?.(state, verification); }, [state, verification, onStateChange]);
-  const discover = useCallback(async () => {
+  const discover = useCallback(async (refresh = false) => {
     if (request.current || execution.current) return;
     if (intent?.mode === "ON_DEMAND" && !intent.request_text?.trim()) { onAnalyze(); return; }
     setVerification(idleVerification);
     const current = new AbortController(); request.current = current;
     setState({ status: "DISCOVERING", result: null, error: null });
     try {
-      const result = await discoverVerifications(input, architectureId, current.signal, intent);
+      const result = await discoverVerifications(input, architectureId, current.signal, intent, refresh);
       if (!current.signal.aborted) setState({ status: result.candidates.length ? "READY" : "EMPTY", result, error: null });
     } catch (error) {
       if (!current.signal.aborted) setState({ status: "ERROR", result: null, error: error instanceof Error ? error.message : "Discovery could not be completed.", stale: error instanceof DiscoveryApiError && error.code === "ANALYSIS_STALE" });
@@ -48,12 +49,12 @@ export function SuggestedVerifications({ repositoryPath, source, intent, autoDis
     });
     return () => { active = false; };
   }, [autoDiscover, discover, contextKey]);
-  const verify = async (id: string) => {
+  const verify = async (id: string, refresh = false) => {
     if (execution.current || request.current || (verification.status === "ERROR" && verification.code === "ANALYSIS_STALE")) return;
     const current = new AbortController(); execution.current = current;
     setVerification({ status: "RUNNING", result: null, error: null });
     try {
-      const result = await runVerification(input, id, architectureId, current.signal);
+      const result = await runVerification(input, id, architectureId, current.signal, refresh);
       if (!current.signal.aborted) setVerification({ status: "RESULT", result, error: null });
     } catch (error) {
       if (!current.signal.aborted) setVerification({ status: "ERROR", result: null, error: error instanceof Error ? error.message : "Verification failed.", code: error instanceof DiscoveryApiError ? error.code : "VERIFICATION_FAILED" });
@@ -62,7 +63,7 @@ export function SuggestedVerifications({ repositoryPath, source, intent, autoDis
   const stale = verification.status === "ERROR" && verification.code === "ANALYSIS_STALE";
   return <section className="suggested-verifications" aria-labelledby="suggested-title" data-state={state.status}>
     <div className="suggested-heading"><div><h2 id="suggested-title">Suggested Verifications</h2><p>Grounded suggestions for this architecture. Run an installed check to collect evidence.</p></div>
-      <button className="primary-button" disabled={verification.status === "RUNNING" || stale || state.status === "DISCOVERING" || (state.status === "ERROR" && state.stale)} onClick={discover}>{state.status === "DISCOVERING" ? "Discovering…" : "Discover Verifications"}</button></div>
+      <button className="primary-button" disabled={verification.status === "RUNNING" || stale || state.status === "DISCOVERING" || (state.status === "ERROR" && state.stale)} onClick={() => discover(Boolean(state.result))}>{state.status === "DISCOVERING" ? "Discovering…" : state.status === "READY" ? "Regenerate" : "Discover Verifications"}</button></div>
     {state.status === "IDLE" && <p className="discovery-note">Discover grounded suggestions using the configured model. Normalized architecture metadata is sent to the provider.</p>}
     {state.status === "DISCOVERING" && <p role="status" className="discovery-note">Selecting worthwhile checks and validating their architecture grounding…</p>}
     {state.status === "ERROR" && <div role="alert" className="discovery-error" data-stale={state.stale}><p>{state.error}</p>{state.stale && <button onClick={onAnalyze}>Analyze Repository again →</button>}</div>}
@@ -71,10 +72,10 @@ export function SuggestedVerifications({ repositoryPath, source, intent, autoDis
       {verification.status === "IDLE" && <p className="discovery-note">Run an available verification to collect evidence.</p>}
       {verification.status === "RUNNING" && <p role="status">Running static verification and collecting source-backed evidence…</p>}
       {verification.status === "ERROR" && <div role="alert" className="discovery-error"><code>{verification.code}</code><p>{verification.error}</p>{stale && <button onClick={onAnalyze}>Analyze Repository again →</button>}</div>}
-      {verification.status === "RESULT" && <VerificationResult result={verification.result} />}
+      {verification.status === "RESULT" && <VerificationResult result={verification.result} onRerun={() => verify(verification.result.evaluation_id, true)} />}
     </div>
     {state.result && <>
-      <div className="discovery-context"><span>{state.result.catalog_version}</span><span title={state.result.architecture_id}>Snapshot <code>{state.result.architecture_id.slice(0, 12)}</code></span><span>Fresh server-side analysis</span></div>
+      <div className="discovery-context"><span>{state.result.catalog_version}</span><span title={state.result.architecture_id}>Snapshot <code>{state.result.architecture_id.slice(0, 12)}</code></span><span>{savedNote(state.result.stored) ?? "Fresh server-side analysis"}</span></div>
       {state.result.candidates.map(item => <article className="suggestion" key={item.id}>
         <div className="suggestion-title"><h3>{item.name}</h3><span>{item.category}</span></div><p>{item.reason}</p>
         <dl className="suggestion-labels">
