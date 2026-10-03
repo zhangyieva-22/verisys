@@ -1,4 +1,4 @@
-"""Read one discovered Python file without crawling or executing source.
+"""Read one discovered Python or documentation file without crawling or executing it.
 
 All child symlinks are rejected. POSIX descriptors and NOFOLLOW protect child
 opens against symlink replacement. In-place writes and arbitrary directory
@@ -12,7 +12,7 @@ import stat
 from enum import StrEnum
 from pathlib import Path
 
-from .discovery import DEFAULT_MAX_FILE_BYTES, EXCLUDED_DIRECTORIES, _obvious_binary, _open_directory
+from .discovery import DEFAULT_MAX_FILE_BYTES, EXCLUDED_DIRECTORIES, _obvious_binary, _open_directory, is_document
 
 
 class ReadReason(StrEnum):
@@ -40,6 +40,22 @@ def read_python_source(
     root: Path, relative: Path, *, max_file_bytes: int = DEFAULT_MAX_FILE_BYTES,
     remaining_bytes: int | None = None,
 ) -> bytes:
+    return _read_bounded(root, relative, relative.suffix == ".py",
+                         max_file_bytes=max_file_bytes, remaining_bytes=remaining_bytes)
+
+
+def read_document(
+    root: Path, relative: Path, *, max_file_bytes: int = DEFAULT_MAX_FILE_BYTES,
+    remaining_bytes: int | None = None,
+) -> bytes:
+    """A documentation or manifest file as discovery records it."""
+    return _read_bounded(root, relative, is_document(relative),
+                         max_file_bytes=max_file_bytes, remaining_bytes=remaining_bytes)
+
+
+def _read_bounded(
+    root: Path, relative: Path, allowed: bool, *, max_file_bytes: int, remaining_bytes: int | None,
+) -> bytes:
     """Read at most the remaining budget, including when a file grows.
 
     Known oversize files are rejected before reading. Without an aggregate
@@ -49,7 +65,7 @@ def read_python_source(
     """
     if max_file_bytes < 0 or (remaining_bytes is not None and remaining_bytes < 0):
         raise ValueError("Read limits must be nonnegative")
-    if relative.is_absolute() or ".." in relative.parts or relative.suffix != ".py":
+    if relative.is_absolute() or ".." in relative.parts or not allowed:
         raise UnsafeSourceError(ReadReason.INVALID_PATH)
     if any(part in EXCLUDED_DIRECTORIES or part == ".env" or part.startswith(".env.")
            for part in relative.parts):

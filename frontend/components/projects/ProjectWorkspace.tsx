@@ -7,17 +7,20 @@ import { AppSidebar, type ProjectSection } from '../layout/AppSidebar';
 import { ArchitectureView } from '../architecture/ArchitectureGraph';
 import { RepositoryInput } from '../architecture/RepositoryInput';
 import { SuggestedVerifications } from '../evaluation/SuggestedVerifications';
+import { UnderstandingView } from '../understanding/UnderstandingView';
 import { analyzeRepository, type AnalysisResult } from '@/lib/architecture/analysis-client';
 import { idleDiscovery, type DiscoveryState } from '@/lib/evaluation/discovery-client';
 import { idleVerification, type VerificationState } from '@/lib/evaluation/verification-client';
+import { idleUnderstanding, type UnderstandingState } from '@/lib/understanding/understanding-client';
+import { DiagramApiError, enrichDiagram, idleEnrichment, type EnrichmentState } from '@/lib/architecture/diagram-client';
 import { readProjects, writeProjects, recentProject, type RecentProject } from '@/lib/projects';
 import type { RepositorySubmission } from '@/lib/repository-source';
 
-type Session = { result: AnalysisResult; input: RepositorySubmission; analyzedAt: string; discovery: DiscoveryState; verification: VerificationState };
+type Session = { result: AnalysisResult; input: RepositorySubmission; analyzedAt: string; discovery: DiscoveryState; verification: VerificationState; understanding: UnderstandingState; enrichment: EnrichmentState };
 const identity = (result: AnalysisResult) => result.repository.source?.type === 'github' ? result.repository.source.url : result.repository.path ?? result.repository.name;
 function paused(session: Session): Session {
   // Leaving aborts browser requests; neither claim completion nor retry paid calls.
-  return {...session,input:{...session.input,autoDiscover:false},discovery:session.discovery.status==='DISCOVERING'?idleDiscovery:session.discovery,verification:session.verification.status==='RUNNING'?idleVerification:session.verification};
+  return {...session,input:{...session.input,autoDiscover:false},discovery:session.discovery.status==='DISCOVERING'?idleDiscovery:session.discovery,verification:session.verification.status==='RUNNING'?idleVerification:session.verification,understanding:session.understanding.status==='GENERATING'?idleUnderstanding:session.understanding};
 }
 export function ProjectWorkspace() {
   const [recent,setRecent]=useState<RecentProject[]>([]);
@@ -42,7 +45,7 @@ export function ProjectWorkspace() {
     try{
       const result=await analyzeRepository(input.source);if(current!==request.current)return;
       const key=identity(result);
-      const session:Session={result,input:{...input,source:result.repository.source??input.source,autoDiscover:!reopening&&input.autoDiscover},analyzedAt:new Date().toISOString(),discovery:idleDiscovery,verification:idleVerification};
+      const session:Session={result,input:{...input,source:result.repository.source??input.source,autoDiscover:!reopening&&input.autoDiscover},analyzedAt:new Date().toISOString(),discovery:idleDiscovery,verification:idleVerification,understanding:idleUnderstanding,enrichment:idleEnrichment};
       setSessions(p=>({...p,[key]:session}));setSelected(key);setSection('Overview');
       const metadata=recentProject(result,input.intent);
       if(metadata)setRecent(p=>[metadata,...p.filter(item=>item.url!==metadata.url)].slice(0,20));
@@ -59,6 +62,21 @@ export function ProjectWorkspace() {
   const stateChanged=useCallback((discovery:DiscoveryState,verification:VerificationState)=>{
     if(selected)setSessions(p=>p[selected]?{...p,[selected]:{...p[selected],discovery,verification}}:p);
   },[selected]);
+  const understandingChanged=useCallback((understanding:UnderstandingState)=>{
+    if(selected)setSessions(p=>p[selected]?{...p,[selected]:{...p[selected],understanding}}:p);
+  },[selected]);
+  // Enrichment lives with the session, not the view: leaving Architecture never discards a paid call.
+  const enriching=useRef(new Set<string>());
+  const enrich=async()=>{
+    const key=selected;const session=key?sessions[key]:undefined;
+    if(!key||!session||enriching.current.has(key))return;
+    enriching.current.add(key);
+    const update=(enrichment:EnrichmentState)=>setSessions(p=>p[key]&&p[key].analyzedAt===session.analyzedAt?{...p,[key]:{...p[key],enrichment}}:p);
+    update({status:'ENRICHING',result:null,error:null});
+    try{update({status:'READY',result:await enrichDiagram(session.result.repository.source??session.input.source,session.result.architecture_id),error:null});}
+    catch(failure){update({status:'ERROR',result:null,error:failure instanceof Error?failure.message:'Diagram enrichment could not be completed.',stale:failure instanceof DiagramApiError&&failure.code==='ANALYSIS_STALE'});}
+    finally{enriching.current.delete(key);}
+  };
   const reanalyze=()=>{if(active)setSetup({initial:{...active.input,autoDiscover:active.input.source.type==='github'}});};
   const name=active?.result.repository.name.split('/').pop();
   const repoIdentity=active?`${active.result.repository.name}${active.result.repository.resolved_commit_sha?` · ${active.result.repository.resolved_commit_sha.slice(0,7)}`:''}`:undefined;
@@ -75,8 +93,9 @@ export function ProjectWorkspace() {
       </div></>}
     </main>:<div className="project-layout"><AppSidebar section={section} onSelect={setSection}/><div ref={content} className="project-content">
       {section==='Overview'&&<ProjectOverview result={active.result} discovery={active.discovery} verification={active.verification} analyzedAt={active.analyzedAt} onArchitecture={()=>setSection('Architecture')} onVerifications={()=>setSection('Verifications')} onReanalyze={reanalyze}/>}
-      {section==='Architecture'&&<ArchitectureView key={selected} result={active.result}/>}
-      {/* Keep session controller mounted across sections: navigation never repeats discovery. */}
+      {section==='Architecture'&&<ArchitectureView key={selected} result={active.result} enrichment={active.enrichment} onEnrich={()=>void enrich()}/>}
+      {/* Keep paid-call controllers mounted across sections: navigation never repeats or aborts them. */}
+      <div hidden={section!=='Understanding'}><UnderstandingView key={`${selected}:${active.analyzedAt}`} source={active.result.repository.source??active.input.source} architectureId={active.result.architecture_id} initialState={active.understanding} onStateChange={understandingChanged} onAnalyze={reanalyze}/></div>
       <main className="project-verifications" hidden={section!=='Verifications'}><div className="page-heading"><div><h1>Verifications</h1><p>Run an available check to collect real evidence. Unsupported checks remain suggestions.</p></div></div>
         {active.input.intent.mode==='ON_DEMAND'&&<p className="concern-context">Concern: {active.input.intent.request_text??'Re-analyze with a concern to select matching checks.'}</p>}
         <SuggestedVerifications key={`${selected}:${active.analyzedAt}`} source={active.result.repository.source??active.input.source} intent={active.input.intent.mode==='ON_DEMAND'||active.input.source.type==='github'?active.input.intent:undefined} autoDiscover={active.input.autoDiscover} architectureId={active.result.architecture_id} initialDiscovery={active.discovery} initialVerification={active.verification} onStateChange={stateChanged} onAnalyze={reanalyze}/>

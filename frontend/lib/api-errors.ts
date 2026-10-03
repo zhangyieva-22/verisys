@@ -11,6 +11,12 @@ const messages: Record<string,string> = {
   UNSAFE_ARCHIVE_CONTENT: 'The repository archive contains unsupported or unsafe entries.',
   ANALYSIS_STALE: 'The repository snapshot changed. Analyze it again before continuing.',
   DISCOVERY_PROVIDER_FAILED: 'Verification discovery is temporarily unavailable. Try again later.',
+  UNDERSTANDING_CONFIGURATION_MISSING: 'Understanding needs a configured model and API key on the backend.',
+  UNDERSTANDING_PROVIDER_FAILED: 'The model provider could not complete this request. No claims were produced. Try again later.',
+  UNDERSTANDING_VALIDATION_FAILED: 'The model response could not be validated. No claims were produced.',
+  DIAGRAM_CONFIGURATION_MISSING: 'Diagram enrichment needs a configured model and API key on the backend.',
+  DIAGRAM_PROVIDER_FAILED: 'The model provider could not complete this request. The detected diagram is unchanged. Try again later.',
+  DIAGRAM_VALIDATION_FAILED: 'The model response could not be validated. The detected diagram is unchanged.',
 };
 export function apiErrorMessage(code: unknown, fallback: string): string {
   return typeof code === 'string' ? messages[code] ?? fallback : fallback;

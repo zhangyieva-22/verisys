@@ -176,16 +176,17 @@ identical inputs, not guaranteed persistent across source moves or revisions.
 
 Dependency projection includes modules represented by internal dependency
 endpoints; it is not a complete module inventory or generalized runtime graph.
-Dependency View shows MODULE + source-backed IMPORTS. System Flow uses explicit
-ExecutionFlow transitions, with source-defined condition labels in the Inspector.
-IMPORTS do not become execution. Co-located components create no CALLS/CONTAINS
-edges. Framework source references may be unavailable under the current schema.
+Dependency View shows MODULE + source-backed IMPORTS. The Architecture tab's default
+view is the System Diagram, a layered grouping of the same graph facts with optional
+inferred components; see [understanding-layer.md](understanding-layer.md). IMPORTS do not become execution. Co-located components create no
+CALLS/CONTAINS edges. Framework source references may be unavailable under the
+current schema. UI labels/edge geometry may be simplified for readability while
+original identities and references remain inspectable. React Flow state/layout
+belongs only to frontend adapters.
 
-System Flow is the default. Tool Execution remains one primary step with candidate
-tools in its Inspector. Unproven external-service/datastore participation remains
-under Other detected components, unconnected. UI labels/edge geometry may be
-simplified for readability while original identities, conditions and references
-remain inspectable. React Flow state/layout belongs only to frontend adapters.
+The former System Flow canvas was removed because it rendered only LangGraph
+StateGraph flows and was empty for most repositories. ExecutionFlow data is still
+analyzed, projected and summarized on the Overview page.
 
 ## M4.5 normalized input and eligible options
 
@@ -307,8 +308,8 @@ responses clear suggestions and prompt explicit reanalysis without automatic ret
 The hash identifies bounded normalized architecture facts/options, not every source
 byte; unrepresented changes may leave it unchanged. Filesystem reads are not atomic;
 keep source stable. Successful suggestions match the displayed normalized snapshot.
-No suggestion is a result, and no verifier runs. System Flow/Dependency View
-continue to render only the existing architecture graph.
+No suggestion is a result, and no verifier runs. The Dependency View continues
+to render only the existing architecture graph.
 
 ## Evaluation extension path
 
@@ -433,7 +434,7 @@ a hosted authenticated multi-tenant service. No private GitHub or other host sup
 
 The frontend ProjectWorkspace owns Projects/selected-project/section/setup state.
 Overview summarizes the current API result and session discovery/result state.
-ArchitectureView retains the M2.6 System Flow and MODULE+IMPORTS presentation;
+ArchitectureView shows the System Diagram and the MODULE+IMPORTS Dependency View;
 Verifications retains existing M5/M6 discovery/execution clients and result renderer.
 The selected project's discovery controller stays mounted across section navigation,
 preventing navigation from causing another provider call. Leaving a project aborts
@@ -460,3 +461,22 @@ retry branches or runtime evaluations; they do not establish governance or compl
 Recommendations use installed capability and recorded results only. No presentation
 provider call is added. Detailed execution, Evidence and Trace remain in Verifications.
 The completion count describes the single retained session result, not run history.
+
+## Understanding layer
+
+`verisys/understanding/` proposes functional requirements and risks from server-selected,
+redacted excerpts in one opt-in model call; see [understanding-layer.md](understanding-layer.md).
+
+- `selection.py` reads only discovered Python files and recorded documentation through
+  the safe readers, in a fixed priority order and within line and byte budgets.
+- `contracts.py` defines the excerpt, model-schema and result types; the schema limits
+  citations to the excerpt IDs sent.
+- `understand.py` calls the model, checks every citation against the exact text sent
+  and returns `INFERRED_NOT_VERIFIED` claims.
+- `POST /api/understanding` reuses pinned-source and fresh-analysis checks; the
+  frontend shows results in a separate Understanding section.
+- `diagram.py` and `POST /api/diagram/enrich` add inferred components and a request
+  path to the System Diagram, with the same checks.
+
+Discovery records documentation paths in `DiscoveryResult.documents` without reading
+them. Documents never change source scope, limitations, truncation or `architecture_id`.

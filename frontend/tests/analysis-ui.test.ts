@@ -38,12 +38,12 @@ test('Analyze interaction exposes loading then replaces identity and feeds API-r
     await waitFor(() => assert.ok(ui.getByRole('button',{name:'Explore Architecture'})));
     fireEvent.click(ui.getByRole('button',{name:'Architecture'}));
     assert.ok(ui.getAllByText('payments-api').length >= 1);
-    assert.ok(ui.getByText('Agent Workflow'));
-    assert.ok(ui.getByText('7 candidate tools'));
-    assert.equal(ui.queryByText('m-peker/ecommerce-ai-agent'), null);
-    assert.ok(ui.getByText('Analysis limitations (40)'));
+    assert.ok(ui.getByLabelText('API layer'));
     fireEvent.click(ui.getByRole('button', { name: 'Dependency View' }));
     assert.equal(ui.container.querySelectorAll('.react-flow__node').length, 14);
+    assert.equal(ui.queryByText('m-peker/ecommerce-ai-agent'), null);
+    assert.ok(ui.getByText('Analysis limitations (40)'));
+    assert.equal(ui.queryByRole('button', { name: 'System Flow' }), null);
   } finally { restore(); }
 });
 
@@ -65,7 +65,6 @@ test('empty execution flows remain READY with dependencies and current limitatio
     const ui = await workspace(); submit(ui);
     await waitFor(() => assert.ok(ui.getByRole('button',{name:'Explore Architecture'})));
     fireEvent.click(ui.getByRole('button',{name:'Architecture'}));
-    assert.ok(ui.getByText('No supported source-declared execution flow was detected. Inspect structural dependencies in Dependency View.'));
     assert.ok(ui.getByText('Analysis limitations (1)'));
     assert.ok(ui.getByText('A current source limitation.'));
     fireEvent.click(ui.getByRole('button', { name: 'Dependency View' }));

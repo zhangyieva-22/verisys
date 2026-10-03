@@ -147,7 +147,7 @@ git -C /absolute/external/workspace/ecommerce-ai-agent status --short
 
 HEAD must equal `3d38d5ab7fa0f27bd5c28488afa354abaf2577b4`; use a clean checkout.
 For architecture smoke testing, start Verisys as described in README and analyze
-this absolute path in the UI. Inspect System Flow, Dependency View, source grounding
+this absolute path in the UI. Inspect the Dependency View, source grounding
 and limitations. This requires no OpenAI key and never executes target code.
 For core discovery smoke testing, install `.[test,discovery]` and deliberately run
 the opt-in test above with VERISYS_LIVE_REPOSITORY pointing to this checkout.

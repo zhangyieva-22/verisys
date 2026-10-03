@@ -3,7 +3,7 @@ import { useState } from "react";
 import { callSites, type ArchitectureGraph, type ArchitectureNode, type SourceLocation } from "@/lib/architecture/types";
 import { nodePresentation } from "./ArchitectureNode";
 
-function SourceReferences({ locations }: { locations: SourceLocation[] }) {
+export function SourceReferences({ locations }: { locations: SourceLocation[] }) {
   const [active, setActive] = useState<SourceLocation | null>(null);
   return <>
     <div className="source-list">{locations.map(location => <button className="source-reference" key={`${location.file}:${location.line}:${location.column}`} onClick={() => setActive(location)}>

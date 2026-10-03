@@ -133,6 +133,13 @@ child symlinks, and bounds files and input size. Later reads revalidate safety.
 Live discovery is deliberately opt-in and sends normalized architecture metadata
 to the configured provider, not raw source, secrets, repository root or verification
 results. Metadata such as relative paths and names can still be sensitive.
+
+The understanding layer is a separate, explicit user action that does send selected
+documentation and source excerpts, with likely secrets redacted, to the configured
+provider. It proposes functional requirements and risks that are always labelled
+inferred, not verified; each keeps only citations whose quoted text was checked
+against what was sent. Inferred claims are never Evidence or a Verdict. See
+[understanding-layer.md](understanding-layer.md).
 Provider latency and token usage are observability, never engineering Evidence.
 
 Local `.env` files and credentials must never be committed or pushed. Only blank

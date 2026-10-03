@@ -24,6 +24,18 @@ DEFAULT_MAX_FILES = 1000
 DEFAULT_MAX_TOTAL_BYTES = 20 * 1024 * 1024
 DEFAULT_MAX_ENTRIES = 100_000
 BINARY_SAMPLE_BYTES = 4096
+# Documentation paths are recorded for opt-in understanding only; never read here.
+MAX_DOCUMENTS = 500
+DOCUMENT_SUFFIXES = frozenset({".md", ".rst", ".txt"})
+# Manifests describe components analysis cannot see (frontends, containers, dependencies).
+MANIFEST_NAMES = frozenset({"package.json", "pyproject.toml", "setup.cfg", "Dockerfile", "docker-compose.yml",
+                            "docker-compose.yaml", "compose.yml", "compose.yaml"})
+
+
+def is_document(path: Path) -> bool:
+    """Documentation or manifest paths recorded for opt-in understanding; never Python source."""
+    return path.suffix != ".py" and (path.suffix in DOCUMENT_SUFFIXES or path.name in MANIFEST_NAMES
+                                     or path.name.upper().startswith("README"))
 EXCLUDED_DIRECTORIES = frozenset({
     ".git", ".venv", "venv", "node_modules", "__pycache__", ".tox",
     ".pytest_cache", ".mypy_cache", "vendor", "generated", "build", "dist",
@@ -65,6 +77,9 @@ class DiscoveryResult(DomainModel):
     skipped: list[SkippedItem] = Field(default_factory=list)
     truncated: bool = False
     limitations: list[str] = Field(default_factory=list)
+    # Separate from source scope: documents never change limitations or truncation.
+    documents: list[Path] = Field(default_factory=list)
+    documents_truncated: bool = False
 
 
 def _open_directory(root_fd: int, relative: Path) -> int:
@@ -162,6 +177,11 @@ def discover_repository(
                             skip(relative, SkipReason.NON_REGULAR_FILE)
                         elif relative.suffix != ".py":
                             skip(relative, SkipReason.NON_PYTHON)
+                            if is_document(relative):
+                                if len(result.documents) < MAX_DOCUMENTS:
+                                    result.documents.append(relative)
+                                else:
+                                    result.documents_truncated = True
                         else:
                             # NONBLOCK avoids hanging if a regular file is replaced by a FIFO.
                             descriptor = os.open(entry.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
@@ -194,5 +214,6 @@ def discover_repository(
     finally:
         os.close(root_fd)
     result.files.sort(key=lambda path: path.as_posix())
+    result.documents.sort(key=lambda path: path.as_posix())
     result.skipped.sort(key=lambda item: (item.path.as_posix(), item.reason.value))
     return result

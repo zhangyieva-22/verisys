@@ -15,12 +15,17 @@ Tool Execution → Evidence → Deterministic Verdict → Structured Trace.
 - Safe, bounded Python repository discovery and static architecture analysis; local paths remain a development/testing option.
 - Source-grounded architecture components, internal imports and a limited set of
   source-declared execution flows.
-- A Next.js architecture workspace with System Flow, Dependency View and Inspector,
+- A Next.js architecture workspace with a layered System Diagram (optionally enriched by AI
+  with cited, inferred components), Dependency View and Inspector,
   connected to the local FastAPI analysis endpoint.
 - M4 Core: static explicit per-call OpenAI timeout verification, producing immutable
   source-backed evidence, a deterministic verdict and structured trace.
 - M4.5 Core: deterministic eligible discovery options, optional LLM selection of
   option IDs, and strict server-controlled EvaluationCandidate construction.
+- Understanding: on request, a model proposes functional requirements and risks from
+  selected, redacted documentation and source. Every item cites checked source text and
+  is labelled inferred, not verified. It uses `VERISYS_UNDERSTANDING_MODEL`, or
+  `VERISYS_DISCOVERY_MODEL` when unset. See [the understanding layer](docs/understanding-layer.md).
 
 The UI/API expose architecture analysis and **Suggested Verifications** (M5).
 Choose PROACTIVE to find important checks, or ON_DEMAND with a bounded concern.
@@ -160,6 +165,7 @@ repository-wide contributor and coding-agent invariants.
 - [Product specification](docs/product-spec.md): users, product workflow and boundaries.
 - [Architecture](docs/architecture.md): current modules, contracts and safe-read boundaries.
 - [Evaluation catalog](docs/evaluation-catalog.md): discovery options and executable timeout policy.
+- [Understanding layer](docs/understanding-layer.md): inferred requirements and risks with checked citations.
 - [Milestone plan](docs/mvp-plan.md): implemented work, acceptance criteria and future scope.
 - [Contribution guide](docs/contributing.md): setup, collaboration, testing and handoffs.
 
@@ -192,8 +198,8 @@ Acquisition uses independent download/extraction limits; see the architecture do
 
 The app opens on **Projects**, with one Analyze Repository entry. Choose Proactive
 to find checks, or On-demand to supply a concern. Successful analysis opens the
-repository's Overview; Architecture contains System Flow/Dependency View and the
-Inspector, while Verifications contains suggestions and evidence-backed results.
+repository's Overview; Understanding shows inferred requirements and risks; Architecture
+contains the System Diagram, the Dependency View and the Inspector, while Verifications contains suggestions and evidence-backed results.
 Use All Projects to switch between repositories. Runs is hidden: no durable run
 history exists.
 

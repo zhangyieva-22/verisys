@@ -7,6 +7,8 @@ const config: NextConfig = {
       { source: "/api/evaluations/verify", destination: `${backend}/api/evaluations/verify` },
       { source: "/api/analyze", destination: `${backend}/api/analyze` },
       { source: "/api/evaluations/discover", destination: `${backend}/api/evaluations/discover` },
+      { source: "/api/understanding", destination: `${backend}/api/understanding` },
+      { source: "/api/diagram/enrich", destination: `${backend}/api/diagram/enrich` },
     ];
   },
 };
