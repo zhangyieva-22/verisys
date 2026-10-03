@@ -149,3 +149,12 @@ metadata is navigation only; cold reopening obtains fresh pinned server analysis
 without automatic discovery. Session-only evidence/results are never persisted as
 authority. Runs is hidden pending a real history model. Domain/backend contracts
 and the single executable timeout policy remain unchanged.
+
+## Implemented: HTTP client timeout coverage
+
+A second executable static verification checks outbound `requests` and `httpx` calls, reusing the M4 evidence model, judge, API and verification UI.
+The policy follows each library's real defaults: `requests` has no timeout by default, while `httpx` defaults to five seconds; each finite timeout records whether it comes from the call, the client or the library default.
+The analyzer now inspects `with` / `async with` bodies, which makes OpenAI calls inside them visible.
+Catalog v2 adds the evaluation; because the catalog is hashed into `architecture_id`, every architecture ID changed once.
+OpenAI verification evidence is unchanged for repositories without `with` blocks.
+See [the design](http-client-timeout.md) and [the catalog](evaluation-catalog.md).

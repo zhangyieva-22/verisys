@@ -9,7 +9,7 @@ has local setup; [mvp-plan.md](mvp-plan.md) has current milestone status.
 Read the product specification and architecture before changing a layer. Inspect
 the implementation/tests rather than assuming a roadmap capability is connected.
 The local UI accepts public GitHub URL/ref input with PROACTIVE or ON_DEMAND discovery (M7); local-path intake remains a development/testing option.
-M6 exposes the unchanged M4 timeout verifier through the local API/UI. Verification uses no provider; other suggested checks remain non-executable.
+M6 exposes the M4 timeout verifier through the local API/UI, and the `requests`/`httpx` timeout verifier uses the same path. Verification uses no provider; other suggested checks remain non-executable.
 
 Install dependencies in your own Python environment and use `npm ci` in frontend.
 Analyzed repositories do not need their dependencies installed and must never be

@@ -8,6 +8,8 @@ from verisys.models.base import DomainModel
 
 SCHEMA_VERSION = "evaluation-discovery-input-v2"
 PROMPT_VERSION = "evaluation-option-selection-v2"
+# Five evaluations; the OpenAI and HTTP timeout entries may each offer two rationales.
+MAX_SELECTED_OPTIONS = 6
 
 
 class DiscoveryError(ValueError):
@@ -71,7 +73,7 @@ class GroundedSelections(DomainModel):
 
 
 class LLMSelections(DomainModel):
-    selected_option_ids: list[Annotated[str, Field(min_length=1, max_length=80, strict=True)]] = Field(max_length=5)
+    selected_option_ids: list[Annotated[str, Field(min_length=1, max_length=80, strict=True)]] = Field(max_length=MAX_SELECTED_OPTIONS)
 
 
 def selection_schema(options):
@@ -80,7 +82,7 @@ def selection_schema(options):
     if not identifiers:
         return LLMSelections
     return create_model("EligibleOptionSelection", __base__=LLMSelections,
-        selected_option_ids=(list[Literal[identifiers]], Field(max_length=5)))
+        selected_option_ids=(list[Literal[identifiers]], Field(max_length=MAX_SELECTED_OPTIONS)))
 
 
 @dataclass(frozen=True)

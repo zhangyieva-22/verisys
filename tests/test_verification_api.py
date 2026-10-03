@@ -101,3 +101,18 @@ def test_snapshot_changed_during_verifier_not_published(tmp_path, monkeypatch):
     monkeypatch.setattr(api,'get_verifier',lambda _:changed)
     response=client.post(URL,json=request)
     assert response.status_code == 409 and response.json()['error']['code'] == 'ANALYSIS_STALE'
+
+
+def test_http_client_timeout_evaluation_executes(tmp_path, monkeypatch):
+    monkeypatch.setattr(api, 'discover_evaluations', lambda *a: pytest.fail('No provider or discovery during verification'))
+    (tmp_path / 'app.py').write_text('import httpx\nimport requests\n'
+                                     'requests.get("u", timeout=5)\nrequests.post("u")\nhttpx.get("u")\n')
+    request = payload(tmp_path) | {'evaluation_id': 'http-client-timeout-coverage-v1'}
+    response = client.post(URL, json=request)
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert (result['evaluation_id'], result['verdict_status']) == ('http-client-timeout-coverage-v1', 'VIOLATED')
+    assert result['counts'] == {'configured': 2, 'missing': 1, 'unknown': 0, 'total': 3}
+    calls = [item['observation'] for item in result['evidence'] if item['observation']['kind'] == 'call']
+    assert [call.get('timeout_source') for call in calls] == ['call', None, 'library_default']
+    assert result['policy'] == 'Every supported requests and httpx call site has a finite timeout.'

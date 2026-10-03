@@ -38,13 +38,14 @@ architecture constraints and runtime behavior. It is not limited to NFRs.
   GitHub is the primary input; local paths are development/testing support.
   Resolve once, then reacquire the full commit SHA plus architecture_id for later stages.
   PROACTIVE and bounded ON_DEMAND use only eligible option IDs; unmatched concerns
-  produce no candidate. Only the existing timeout verifier executes.
+  produce no candidate. Only the two static timeout verifiers execute.
 - ArchitectureIR, graph projection, System Flow, Dependency View and the local
   analysis API/UI are implemented. ExecutionFlow means source-declared possible
   control flow, not observed runtime execution.
 - M4 Core executes one static policy: explicit per-call timeout coverage for
   supported direct OpenAI calls. Stripe/Twilio and wrapper timeout verification
-  are outside this policy.
+  are outside this policy. A second static policy checks finite timeouts on
+  supported `requests`/`httpx` calls, sharing the M4 evidence model and judge.
 - M4.5 Core builds deterministic eligible options; an optional LLM selects only
   option IDs. Local validation and all final candidate fields are server-owned.
   Discovery does not execute a verifier or produce Evidence/Verdict.

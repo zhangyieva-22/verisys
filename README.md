@@ -136,7 +136,7 @@ A new analysis clears prior suggestions. Applicability/support/mode/priority com
 from the server; no Evidence, Verdict or verification execution is implied.
 Discovery compares fresh normalized architecture with the displayed analysis ID.
 A mismatch produces a stale-analysis message; analyze again explicitly. The hash
-covers normalized facts, not every source byte; keep the repository stable. Run Verification executes the installed timeout policy without a provider call or API key. Other suggestions remain non-executable. New analysis or discovery clears prior results.
+covers normalized facts, not every source byte; keep the repository stable. Run Verification executes an installed timeout policy (OpenAI or `requests`/`httpx`) without a provider call or API key. Other suggestions remain non-executable. New analysis or discovery clears prior results.
 
 ## Validation and collaboration
 
@@ -180,7 +180,7 @@ Subsequent discover/verify requests send source.ref as the returned **full commi
 and expected_architecture_id. Discovery additionally accepts mode PROACTIVE, or
 ON_DEMAND with request_text (1–2000 characters). On-demand matching is limited to
 server-generated catalog options; an unmatched request returns no supported
-evaluation, never a fabricated result. Only timeout coverage has an installed verifier.
+evaluation, never a fabricated result. Only the two timeout policies have installed verifiers.
 Private repositories, OAuth, SSH and other Git providers are unsupported.
 
 Development intake uses `{"source":{"type":"local","path":"/absolute/path"}}`.

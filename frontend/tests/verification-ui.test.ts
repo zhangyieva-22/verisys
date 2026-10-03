@@ -90,3 +90,15 @@ test('completed result is cleared when repository analysis changes',async()=>{
     assert.equal(ui.container.querySelector('[data-verification-state]')?.getAttribute('data-verification-state'),'IDLE');
   }finally{restore();}
 });
+test('http timeout sources are labelled; OpenAI observations show none',()=>{
+  const call=(id:string,source:string|undefined,status='CONFIGURED')=>({...result.evidence[0],id,
+    observation:{kind:'call',service:'Outbound HTTP',client_library:'httpx',operation:'get',timeout_status:status,reason:'fixture',...(source?{timeout_source:source}:{})}});
+  try {const ui=render(createElement(VerificationResult,{result:{...result,evidence:[call('a','call'),call('b','client'),call('c','library_default'),call('d',undefined,'MISSING')]}}));
+    assert.ok(ui.getByText('Timeout set on this call'));assert.ok(ui.getByText("Inherited from the client's timeout"));
+    assert.ok(ui.getByText('Relies on the httpx 5-second default'));
+    assert.equal(ui.container.querySelectorAll('.timeout-source').length,3);
+  }finally{restore();}
+  try {const ui=render(createElement(VerificationResult,{result}));
+    assert.equal(ui.container.querySelector('.timeout-source'),null);
+  }finally{restore();}
+});

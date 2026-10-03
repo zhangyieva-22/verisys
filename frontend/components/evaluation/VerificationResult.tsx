@@ -1,5 +1,12 @@
 import type { VerificationResult as Result } from '@/lib/evaluation/verification-client';
 
+// Where a finite timeout comes from; absent for MISSING/UNKNOWN and for policies that only accept per-call values.
+const TIMEOUT_SOURCES: Record<string, string> = {
+  call: 'Timeout set on this call',
+  client: "Inherited from the client's timeout",
+  library_default: 'Relies on the httpx 5-second default',
+};
+
 export function VerificationResult({ result }: { result: Result }) {
   return <section className="verification-result" aria-label="Verification result">
     <header><span>STATIC VERIFICATION RESULT</span><h3>{result.evaluation_name}</h3></header>
@@ -11,13 +18,14 @@ export function VerificationResult({ result }: { result: Result }) {
     <p>{result.summary}</p>
     <div className="verification-counts">{Object.entries(result.counts).map(([label, value]) => <span key={label}><strong>{value}</strong> {label}</span>)}</div>
     <p className="coverage">{result.coverage_percent !== null ? `Definitive coverage: ${result.coverage_percent}%` : result.applicability === 'NOT_APPLICABLE' ? 'Coverage is not applicable.' : 'Coverage incomplete · no definitive percentage available.'}</p>
-    <p className="discovery-note">Static per-call configuration only. No runtime timeout behavior or reliability was measured.</p>
+    <p className="discovery-note">Static source configuration only. No runtime timeout behavior or reliability was measured.</p>
     <h4>Source-backed evidence</h4>
     {result.evidence.map(e => <article className="verification-evidence" key={e.id}>
       <code>{e.source_location ? `${e.source_location.file}:${e.source_location.line}` : e.source}</code>
       {e.observation.kind === 'call' ? <><div><strong>{String(e.observation.service)}</strong> · <code>{e.observation.operation == null ? 'Operation unresolved' : String(e.observation.operation)}</code></div>
         <span className={`observation-status ${String(e.observation.timeout_status).toLowerCase()}`}>{String(e.observation.timeout_status)}</span>
         <p>Classification reason: <code>{String(e.observation.reason)}</code></p>
+        {typeof e.observation.timeout_source === 'string' && <p className="timeout-source">{TIMEOUT_SOURCES[e.observation.timeout_source] ?? <code>{e.observation.timeout_source}</code>}</p>}
         {e.observation.timeout_literal !== undefined && <p>Observed timeout literal: <code>{String(e.observation.timeout_literal)}</code></p>}</> : <p>Inspection scope manifest</p>}
       <details><summary>Evidence provenance</summary><code className="evidence-id">{e.id}</code><p>{e.type} · {e.tool}</p><p>{e.claim}</p>
         {e.source_location?.column != null && <p>UTF-8 byte column: {e.source_location.column}</p>}

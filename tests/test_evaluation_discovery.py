@@ -6,6 +6,7 @@ from pydantic import ValidationError
 
 from verisys.evaluation import (DiscoveryError, DiscoveryLimits, LLMSelections,
     StructuredGenerationResult, discover_evaluations, normalize_architecture)
+from verisys.evaluation.contracts import MAX_SELECTED_OPTIONS
 from verisys.evaluation.discovery import INSTRUCTIONS
 from verisys.models import (APIRoute, ArchitectureIR, ArchitectureTool, ExternalService,
     SourceLocation, ExecutionFlow, ExecutionStep, ExecutionTransition, EvaluationCandidate)
@@ -128,7 +129,7 @@ def test_unproven_signals_do_not_create_options(architecture):
 
 @pytest.mark.parametrize('payload,code',[
     ({'selected_option_ids':['invented']},'unknown_option'),
-    ({'selected_option_ids':['x']*6},'invalid_structured_output'),
+    ({'selected_option_ids':['x']*(MAX_SELECTED_OPTIONS+1)},'invalid_structured_output'),
     ({'selected_option_ids':[],'candidates':[]},'invalid_structured_output'),
     ({'candidates':[]},'invalid_structured_output'),
     ('prose','invalid_structured_output'),
@@ -345,3 +346,61 @@ def test_absolute_source_omitted_and_small_budget_diagnostics(architecture):
         discover_evaluations(architecture,FakeClient(),limits=DiscoveryLimits(max_input_bytes=1024))
     assert caught.value.diagnostics['failure_category']=='input_budget_too_small'
     assert caught.value.diagnostics['provider_request_latency_ms'] is None
+
+
+HTTP = 'http-client-timeout-coverage-v1'
+
+
+def http_architecture(*, calls=True, library='requests'):
+    loc = SourceLocation(file='client.py', line=1, column=0)
+    return ArchitectureIR(repository_root='/not/read', languages=['Python'], external_services=[
+        ExternalService(name='Outbound HTTP', client_library=library, source_locations=[loc],
+                        call_sites=[SourceLocation(file='client.py', line=3, column=0)] if calls else [])])
+
+
+@pytest.mark.parametrize('library', ['requests', 'httpx'])
+def test_http_calls_create_supported_timeout_option(library):
+    ir = http_architecture(library=library)
+    options = [item for item in normalize_architecture(ir).eligible_options if item.evaluation_id == HTTP]
+    assert [item.relevance_reason for item in options] == ['supported_http_client_calls']
+    candidate = result(ir, options[0]).candidates[0]
+    assert (candidate.id, candidate.applicability, candidate.execution_support, candidate.verification_mode) == (
+        HTTP, 'APPLICABLE', 'SUPPORTED', 'STATIC')
+    assert not any(item.evaluation_id == TIMEOUT for item in normalize_architecture(ir).eligible_options)
+
+
+def test_http_presence_without_calls_is_partial():
+    ir = http_architecture(calls=False, library='httpx')
+    [selected] = [item for item in normalize_architecture(ir).eligible_options if item.evaluation_id == HTTP]
+    assert selected.relevance_reason == 'http_client_presence'
+    candidate = result(ir, selected).candidates[0]
+    assert (candidate.applicability, candidate.execution_support) == ('UNKNOWN', 'PARTIAL')
+
+
+def test_openai_and_http_timeout_options_stay_separate(architecture):
+    architecture.external_services.append(ExternalService(name='Outbound HTTP', client_library='httpx',
+        source_locations=[SourceLocation(file='c.py', line=1)], call_sites=[SourceLocation(file='c.py', line=2)]))
+    normalized = normalize_architecture(architecture)
+    by_evaluation = {item.evaluation_id: item for item in normalized.eligible_options if item.evaluation_id in (TIMEOUT, HTTP)}
+    assert set(by_evaluation) == {TIMEOUT, HTTP}
+    assert set(by_evaluation[TIMEOUT].allowed_subject_ids).isdisjoint(by_evaluation[HTTP].allowed_subject_ids)
+    candidates = result(architecture, *by_evaluation.values()).candidates
+    assert sorted(candidate.id for candidate in candidates) == sorted([TIMEOUT, HTTP])
+
+
+def test_selection_bound_admits_every_catalog_option(architecture):
+    architecture.external_services += [
+        ExternalService(name='OpenAI', client_library='langchain_openai', source_locations=[SourceLocation(file='w.py', line=1)]),
+        ExternalService(name='Outbound HTTP', client_library='httpx', source_locations=[SourceLocation(file='c.py', line=1)],
+                        call_sites=[SourceLocation(file='c.py', line=2)])]
+    options = normalize_architecture(architecture).eligible_options
+    assert len(options) == 6
+    assert len(result(architecture, *options).candidates) == 5
+
+
+def test_catalog_version_and_http_capability():
+    from verisys.evaluation.catalog import CATALOG, CATALOG_VERSION
+    assert CATALOG_VERSION == 'engineering-evaluations-v2'
+    assert CATALOG[HTTP].verifier_available and CATALOG[HTTP].verification_mode == 'STATIC'
+    from verisys.verification import verify_http_timeout_coverage
+    assert get_verifier(HTTP) is verify_http_timeout_coverage

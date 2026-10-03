@@ -8,6 +8,12 @@ def _rationale(selection, subjects):
     if code == "openai_wrapper_presence":
         valid = all(fact.get("client_library") in ("openai", "langchain_openai") and not fact.get("call_sites") for fact in facts)
         return valid, "UNKNOWN", "PARTIAL", "OpenAI client or wrapper presence was detected, without supported concrete call sites; timeout scope is uncertain."
+    if code == "supported_http_client_calls":
+        valid = all(fact.get("client_library") in ("requests", "httpx") and fact.get("call_sites") for fact in facts)
+        return valid, "APPLICABLE", "SUPPORTED", "Supported concrete requests/httpx calls were detected; finite timeout coverage is worth investigating. No timeout result has been determined."
+    if code == "http_client_presence":
+        valid = all(fact.get("client_library") in ("requests", "httpx") and not fact.get("call_sites") for fact in facts)
+        return valid, "UNKNOWN", "PARTIAL", "requests or httpx presence was detected, without supported concrete call sites; timeout scope is uncertain."
     if code == "http_api_routes":
         valid = all(fact.get("method") and fact.get("path") and fact.get("source_location") for fact in facts)
         routes = ", ".join(f"{fact.get('method')} {fact.get('path')}" for fact in facts)

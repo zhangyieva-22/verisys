@@ -9,8 +9,10 @@ and sqlite3.connect presence; wrapper invoke/stream calls remain unsupported.
 No timeout arguments are inspected. Dynamic factories, attribute-held clients,
 re-exports, src-layout resolution, router mounting/prefix composition, and
 cross-file client bindings are outside this milestone.
-Loops, try/with/match statements, lambdas and comprehensions are explicitly
-unsupported for service/route binding analysis; dependency imports are still
+With/async-with bodies are inspected as straight-line code; `with <constructor>()
+as <name>` binds like an assignment, relying on supported clients returning
+themselves from __enter__. Loops, try/match statements, lambdas and
+comprehensions are explicitly unsupported for service/route binding analysis; dependency imports are still
 collected independently. Conditional branches retain only common bindings.
 """
 
@@ -21,12 +23,33 @@ from verisys.models.architecture import (
     APIRoute, ArchitectureIR, ArchitectureTool, Datastore, Dependency, ExternalService, SourceLocation,
 )
 
-SERVICES = {"openai": "OpenAI", "stripe": "Stripe", "twilio": "Twilio", "langchain_openai": "OpenAI"}
+SERVICES = {
+    "openai": "OpenAI", "stripe": "Stripe", "twilio": "Twilio", "langchain_openai": "OpenAI",
+    "requests": "Outbound HTTP", "httpx": "Outbound HTTP",
+}
 CONSTRUCTORS = {
     "langchain_openai.ChatOpenAI": "langchain_openai",
     "openai.OpenAI": "openai", "openai.AsyncOpenAI": "openai",
     "stripe.StripeClient": "stripe", "twilio.rest.Client": "twilio",
+    "requests.Session": "requests", "requests.session": "requests",
+    "httpx.Client": "httpx", "httpx.AsyncClient": "httpx",
 }
+# Request-making operations, as module functions and as methods of a bound client.
+HTTP_CALLS = {
+    "requests": {"get", "options", "head", "post", "put", "patch", "delete", "request"},
+    "httpx": {"get", "options", "head", "post", "put", "patch", "delete", "request", "stream"},
+}
+# First operation segments that never send a request: configuration objects,
+# exceptions and client state. Anything else unrecognized stays a limitation.
+HTTP_MODULE_HELPERS = {
+    "requests": {"Request", "PreparedRequest", "Response", "exceptions", "adapters", "auth",
+                 "utils", "structures", "cookies", "codes", "status_codes"},
+    "httpx": {"Timeout", "Limits", "URL", "Headers", "QueryParams", "Cookies", "Request", "Response",
+              "HTTPTransport", "AsyncHTTPTransport", "MockTransport", "BasicAuth", "DigestAuth",
+              "Auth", "Proxy", "codes"},
+}
+HTTP_CLIENT_HELPERS = {"close", "aclose", "mount", "build_request", "prepare_request", "headers",
+                       "cookies", "params", "auth", "get_adapter"}
 HTTP_METHODS = {"get", "post", "put", "patch", "delete", "head", "options", "trace"}
 OPENAI_CALLS = {
     "chat.completions.create", "completions.create", "responses.create",
@@ -254,6 +277,11 @@ class SourceAnalyzer(ast.NodeVisitor):
             source = location(self.path, node)
             if source not in store.source_locations:
                 store.source_locations.append(source)
+        base = node.func
+        while isinstance(base, ast.Attribute):
+            base = base.value
+        if base is not node.func and isinstance(base, ast.Call) and self.qualified(base.func) in CONSTRUCTORS:
+            self.limit(node, "Call on an unbound client expression is unsupported; not classified.")
         if symbol in CONSTRUCTORS:
             self.service(CONSTRUCTORS[symbol], node)
         elif symbol:
@@ -272,9 +300,15 @@ class SourceAnalyzer(ast.NodeVisitor):
                         symbol.startswith("client:") and len(parts) == 3 and parts[0] == "v1"
                         and parts[1] in STRIPE_CLIENT_RESOURCES and parts[2] in STRIPE_METHODS
                     )
+                helper = False
+                if library in HTTP_CALLS:
+                    supported = operation in HTTP_CALLS[library]
+                    head = parts[0]
+                    helper = (head in HTTP_CLIENT_HELPERS if symbol.startswith("client:")
+                              else head in HTTP_MODULE_HELPERS[library] or head.endswith(("Error", "Exception", "Timeout")))
                 if supported:
                     self.service(library, node, call=True)
-                else:
+                elif not helper:
                     self.limit(node, f"Unsupported {SERVICES[library]} call pattern: {operation}; not classified.")
         self.generic_visit(node)
 
@@ -398,13 +432,21 @@ class SourceAnalyzer(ast.NodeVisitor):
             elif isinstance(child, ast.Attribute) and isinstance(child.ctx, (ast.Store, ast.Del)):
                 self.invalidate_attribute(child)
 
+    def visit_With(self, node):
+        for item in node.items:
+            if item.optional_vars is None:
+                self.visit(item.context_expr)
+            else:
+                self.assign([item.optional_vars], item.context_expr)
+        for statement in node.body:
+            self.visit(statement)
+
+    visit_AsyncWith = visit_With
     visit_For = unsupported_scope
     visit_AsyncFor = unsupported_scope
     visit_While = unsupported_scope
     visit_Try = unsupported_scope
     visit_TryStar = unsupported_scope
-    visit_With = unsupported_scope
-    visit_AsyncWith = unsupported_scope
     visit_Match = unsupported_scope
     visit_Lambda = unsupported_scope
     visit_ListComp = unsupported_scope

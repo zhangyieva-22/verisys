@@ -1,8 +1,8 @@
-"""Four trusted definitions. Selection does not redefine policy or capability."""
+"""Five trusted definitions. Selection does not redefine policy or capability."""
 from dataclasses import asdict, dataclass
 from types import MappingProxyType
 
-CATALOG_VERSION = "engineering-evaluations-v1"
+CATALOG_VERSION = "engineering-evaluations-v2"
 
 
 @dataclass(frozen=True)
@@ -33,6 +33,12 @@ DEFINITIONS = (
         ("Fresh supported concrete OpenAI call sites", "Per-call static timeout observations"), "STATIC",
         "SUPPORTED for direct openai calls; PARTIAL for presence-only or uncertain scope", "MEDIUM",
         (_COMMON, "Only the existing OpenAI per-call grammar is executable; wrapper behavior and effective runtime timeouts are not established."), True),
+    EvaluationDefinition("http-client-timeout-coverage-v1", "HTTP Client Timeout Coverage", "Reliability",
+        "finite_http_client_timeout", "Investigate finite timeouts on requests and httpx calls.",
+        ("EXTERNAL_SERVICE",), ("supported_http_client_calls", "http_client_presence"),
+        ("Fresh supported concrete requests/httpx call sites", "Per-call static timeout observations"), "STATIC",
+        "SUPPORTED for direct requests/httpx calls; PARTIAL for presence-only or uncertain scope", "MEDIUM",
+        (_COMMON, "Only direct requests/httpx calls are executable; wrappers, adapters and effective runtime timeouts are not established."), True),
     EvaluationDefinition("retry-safety-v1", "Retry Safety", "Reliability", "retry_safety",
         "Investigate safety of repeated workflow actions.", ("EXECUTION_FLOW",), ("source_declared_retry_loop",),
         ("Explicit retry-safety requirement", "Actual side effects and controlled retry experiment"), "RUNTIME",
