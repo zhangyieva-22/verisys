@@ -28,7 +28,7 @@ test('GitHub is primary; ref/mode/concern fields produce bounded intent',async()
   await waitFor(()=>assert.ok(ui.getByText('Run Verification')));
   assert.deepEqual(bodies[0],{source:{type:'github',url,ref:'main'}});
   assert.deepEqual(bodies[1],{source,expected_architecture_id:hash,mode:'ON_DEMAND',request_text:'Check OpenAI timeouts'});
-  assert.ok(ui.getByText(/owner\/repo · 3d38d5a/));fireEvent.click(ui.getByRole('button',{name:'Architecture'}));assert.ok(ui.getByText('Agent Workflow'));
+  assert.ok(ui.getByText(/owner\/repo · 3d38d5a/));fireEvent.click(ui.getByRole('button',{name:'Architecture'}));fireEvent.click(ui.getByRole('button',{name:'Dependency View'}));assert.equal(ui.container.querySelectorAll('.react-flow__node').length,14);
   assert.ok(ui.getByText('Verification not available yet').hasAttribute('disabled'));
  }finally{restore();}
 });
@@ -39,7 +39,7 @@ test('proactive auto discovery happens once, uses immutable SHA and not a moving
   assert.deepEqual(JSON.parse(String(o?.body)),{source,expected_architecture_id:hash,mode:'PROACTIVE'});return response(discovery);};
  try{const ui=render(createElement(ArchitectureWorkspace));enter(ui);fireEvent.click(ui.getAllByRole('button',{name:'Analyze Repository'}).at(-1)!);fireEvent.click(ui.getByRole('button',{name:'Analyzing…'}));
   await waitFor(()=>assert.ok(ui.getByText('Run Verification')));
-  fireEvent.click(ui.getByRole('button',{name:'Architecture'}));fireEvent.click(ui.getByText('Dependency View'));fireEvent.click(ui.getByText('System Flow'));
+  fireEvent.click(ui.getByRole('button',{name:'Architecture'}));fireEvent.click(ui.getByRole('button',{name:'Overview'}));
   assert.equal(analysisCalls,1);assert.equal(discoveryCalls,1);
  }finally{restore();}
 });

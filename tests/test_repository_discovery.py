@@ -298,3 +298,26 @@ def test_effective_limits_are_stored_in_discovery_result(tmp_path):
     assert type(result).model_validate_json(result.model_dump_json()).limits == limits
     with pytest.raises(ValidationError):
         result.limits = DiscoveryLimits()
+
+
+def test_documents_are_recorded_without_reading(tmp_path, monkeypatch):
+    for name in ["README.md", "docs/guide.md", "docs/api.rst", "requirements.txt", "LICENSE", "README",
+                 "image.png", ".env.md", "node_modules/pkg/README.md", "web/package.json", "Dockerfile",
+                 "compose.yaml", "config.json"]:
+        write(tmp_path, name, b"text")
+    monkeypatch.setattr(os, "read", lambda *_: pytest.fail("Document read during discovery"))
+    result = discover_repository(tmp_path)
+    assert result.documents == [Path(name) for name in ["Dockerfile", "README", "README.md", "compose.yaml", "docs/api.rst",
+                                                         "docs/guide.md", "requirements.txt", "web/package.json"]]
+    assert reasons(result)["README.md"] is SkipReason.NON_PYTHON
+    assert result.files == []
+
+
+def test_document_list_is_bounded_and_visible(tmp_path):
+    from verisys.repository.discovery import MAX_DOCUMENTS
+    for index in range(MAX_DOCUMENTS + 3):
+        write(tmp_path, f"notes/{index:04}.md", b"x")
+    result = discover_repository(tmp_path)
+    assert len(result.documents) == MAX_DOCUMENTS and result.documents_truncated
+    # Documentation never affects source scope, limitations or architecture identity.
+    assert not result.truncated and result.limitations == []

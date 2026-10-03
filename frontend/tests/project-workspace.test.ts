@@ -35,7 +35,7 @@ test('analysis loading has no blank graph and prevents duplicate submissions',as
 test('project creation enters Overview, persists only navigation metadata, and pages retain one discovery',async()=>{
  const calls=mock();try{const ui=render(createElement(StrictMode,null,createElement(ProjectWorkspace)));start(ui);submit(ui);await ready(ui);await waitFor(()=>assert.ok(ui.getByText(/2 technical evaluations identified/)));assert.ok(ui.getByText('owner/first · 3d38d5a'));assert.ok(ui.getByRole('heading',{name:'Overview'}));assert.equal(ui.queryByLabelText('Verification result'),null);assert.equal(ui.queryByText('Runs'),null);
  const saved=JSON.parse(window.localStorage.getItem(PROJECTS_KEY)!);assert.equal(saved.length,1);assert.deepEqual(Object.keys(saved[0]).sort(),Object.keys(metadata).sort());assert.equal(saved[0].sha,sha);assert.equal(saved[0].architectureId,hash);
- fireEvent.click(ui.getByRole('button',{name:'Architecture'}));assert.ok(ui.getByText('Agent Workflow'));fireEvent.click(ui.getByText('Dependency View'));assert.equal(ui.container.querySelectorAll('.react-flow__node').length,14);fireEvent.click(ui.getByRole('button',{name:'Verifications'}));assert.ok(ui.getByRole('button',{name:'Run Verification'}));assert.ok(ui.getByRole('button',{name:'Verification not available yet'}).hasAttribute('disabled'));fireEvent.click(ui.getByRole('button',{name:'Overview'}));assert.equal(calls.filter(c=>c.url==='/api/evaluations/discover').length,1);
+ fireEvent.click(ui.getByRole('button',{name:'Architecture'}));assert.ok(ui.getByLabelText('API layer'));fireEvent.click(ui.getByRole('button',{name:'Dependency View'}));assert.equal(ui.container.querySelectorAll('.react-flow__node').length,14);fireEvent.click(ui.getByRole('button',{name:'Verifications'}));assert.ok(ui.getByRole('button',{name:'Run Verification'}));assert.ok(ui.getByRole('button',{name:'Verification not available yet'}).hasAttribute('disabled'));fireEvent.click(ui.getByRole('button',{name:'Overview'}));assert.equal(calls.filter(c=>c.url==='/api/evaluations/discover').length,1);
  }finally{reset();}
 });
 test('on-demand auto discovery sends bounded concern but never persists it',async()=>{
@@ -90,4 +90,20 @@ test('controlled error categories receive actionable presentation text',()=>{
  assert.equal(apiErrorMessage('ANALYSIS_STALE','internal'),'The repository snapshot changed. Analyze it again before continuing.');
  assert.equal(apiErrorMessage('DISCOVERY_PROVIDER_FAILED','internal'),'Verification discovery is temporarily unavailable. Try again later.');
  assert.equal(apiErrorMessage('UNKNOWN','Safe fallback'),'Safe fallback');
+});
+test('diagram enrichment survives leaving Architecture and is never repeated by navigation',async()=>{
+ const enrichment={architecture_id:hash,provider:'openai',model:'m',prompt_version:'diagram-enrichment-v1',
+  components:[{id:'c1',layer:'FRONTEND',label:'Next.js web app',detail:'Browser UI',status:'INFERRED_NOT_VERIFIED',citations:[{path:'README.md',start_line:2,end_line:2,quote:'Next.js',excerpt_kind:'README'}]}],
+  request_path:[],sources:[],limitations:[],input_truncated:false,rejected_claims:0,rejected_citations:0};
+ let enrichCalls=0,finish!:(r:Response)=>void;
+ globalThis.fetch=async(u,o)=>{const body=JSON.parse(String(o?.body));if(u==='/api/diagram/enrich'){enrichCalls++;assert.deepEqual(body,{source:{type:'github',url,ref:sha},expected_architecture_id:hash});return new Promise<Response>(r=>{finish=r;});}
+  return response(u==='/api/analyze'?analyzed(body.source.url):discovered);};
+ try{const ui=render(createElement(StrictMode,null,createElement(ProjectWorkspace)));start(ui);submit(ui);await ready(ui);
+  fireEvent.click(ui.getByRole('button',{name:'Architecture'}));assert.equal(enrichCalls,0);
+  fireEvent.click(ui.getByRole('button',{name:/Enrich with AI/}));fireEvent.click(ui.getByRole('button',{name:/Enriching/}));assert.equal(enrichCalls,1);
+  fireEvent.click(ui.getByRole('button',{name:'Overview'}));finish(response(enrichment));
+  fireEvent.click(ui.getByRole('button',{name:'Architecture'}));
+  await waitFor(()=>assert.ok(ui.getByText('Next.js web app')));assert.equal(enrichCalls,1);
+  assert.ok(ui.getByLabelText('Frontend layer'));
+ }finally{reset();}
 });

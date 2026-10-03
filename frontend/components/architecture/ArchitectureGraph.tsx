@@ -1,49 +1,49 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Info, MousePointer2 } from "lucide-react";
 import { initialSelection } from "@/lib/architecture/selection";
 import type { AnalysisResult } from "@/lib/architecture/analysis-client";
 import { DependencyCanvas } from "./DependencyCanvas";
 import { ArchitectureInspector } from "./ArchitectureInspector";
-import { SystemFlowCanvas, FlowInspector } from "./SystemFlow";
+import { DiagramItemInspector, SystemDiagramView } from "./SystemDiagram";
+import { buildSystemDiagram, mergeEnrichment, type DiagramItem } from "@/lib/architecture/system-diagram";
+import { idleEnrichment, type EnrichmentState } from "@/lib/architecture/diagram-client";
 
 // Preserve the public entry component while the application becomes project-centric.
 export { ProjectWorkspace as ArchitectureWorkspace } from "../projects/ProjectWorkspace";
-export function ArchitectureView({ result }: { result: AnalysisResult }) {
+export function ArchitectureView({ result, enrichment = idleEnrichment, onEnrich = () => {} }: { result: AnalysisResult; enrichment?: EnrichmentState; onEnrich?: () => void }) {
   const graph = result.graph;
-  const executionFlows = graph.execution_flows ?? [];
-  const [view, setView] = useState<"system" | "dependency">("system");
-  const [flowId, setFlowId] = useState<string | undefined>(executionFlows[0]?.id);
-  const execution = executionFlows.find(item => item.id === flowId) ?? executionFlows[0];
-  const [flowSelection, setFlowSelection] = useState<string | null>(execution?.trigger ?? null);
-  const otherComponents = graph.nodes.filter(node => ["EXTERNAL_SERVICE", "DATASTORE"].includes(node.type) && !execution?.steps.some(step => step.component_id === node.id));
-  const [inspectedOther, setInspectedOther] = useState<string | null>(null);
+  const [view, setView] = useState<"diagram" | "dependency">("diagram");
   const [selectedId, setSelectedId] = useState<string | null>(initialSelection(graph));
+  const [diagramItem, setDiagramItem] = useState<DiagramItem | null>(null);
   const selected = graph.nodes.find(node => node.id === selectedId) ?? null;
+  const diagram = useMemo(() => {
+    const detected = buildSystemDiagram(graph);
+    return enrichment.status === "READY" ? mergeEnrichment(detected, enrichment.result.components, enrichment.result.request_path) : detected;
+  }, [graph, enrichment]);
+  const itemLayer = diagramItem ? [...diagram.main, ...diagram.side].find(layer => layer.items.some(item => item.id === diagramItem.id))?.title ?? "" : "";
+  const selectDiagramItem = (item: DiagramItem) => { setDiagramItem(item); if (item.nodeId) setSelectedId(item.nodeId); };
+  const clear = () => { setSelectedId(null); setDiagramItem(null); };
   const routes = graph.nodes.filter(node => node.type === "API_ROUTE").length;
   const modules = graph.nodes.filter(node => node.type === "MODULE").length;
   const services = graph.nodes.filter(node => node.type === "EXTERNAL_SERVICE").length;
-  if (!graph.nodes.length && !executionFlows.length) return <main className="project-overview"><h1>Architecture</h1><div className="workspace-notice"><h2>No architecture components were detected.</h2><p>The supported static analysis found no inspectable architecture in this snapshot.</p></div>{graph.limitations.length > 0 && <details><summary>Analysis limitations ({graph.limitations.length})</summary>{graph.limitations.map(item => <p key={item}>{item}</p>)}</details>}</main>;
+  if (!graph.nodes.length) return <main className="project-overview"><h1>Architecture</h1><div className="workspace-notice"><h2>No architecture components were detected.</h2><p>The supported static analysis found no inspectable architecture in this snapshot.</p></div>{graph.limitations.length > 0 && <details><summary>Analysis limitations ({graph.limitations.length})</summary>{graph.limitations.map(item => <p key={item}>{item}</p>)}</details>}</main>;
   return <div className="architecture-layout">
       <main className="architecture-workspace">
         <div className="workspace-breadcrumb">Workspace<span>/</span><strong>Architecture</strong></div>
-        <div className="architecture-heading"><div><div className="eyebrow">SYSTEM UNDERSTANDING</div><h1>Architecture</h1><p>Architecture reflects source-grounded relationships detected by Verisys.</p></div><div className="architecture-view-switch" aria-label="Architecture view"><button className={view === "system" ? "active" : ""} onClick={() => { setView("system"); setInspectedOther(null); }}>System Flow</button><button className={view === "dependency" ? "active" : ""} onClick={() => { setView("dependency"); setInspectedOther(null); if (!graph.nodes.some(node => node.id === selectedId && node.type === "MODULE")) setSelectedId(null); }}>Dependency View</button></div></div>
+        <div className="architecture-heading"><div><div className="eyebrow">SYSTEM UNDERSTANDING</div><h1>Architecture</h1><p>Architecture reflects source-grounded relationships detected by Verisys.</p></div><div className="architecture-view-switch" aria-label="Architecture view"><button className={view === "diagram" ? "active" : ""} onClick={() => setView("diagram")}>System Diagram</button><button className={view === "dependency" ? "active" : ""} onClick={() => { setView("dependency"); setDiagramItem(null); }}>Dependency View</button></div></div>
         <div className="architecture-summary"><span><strong>{graph.nodes.length}</strong> components</span><i /><span><strong>{routes}</strong> API {routes === 1 ? "route" : "routes"}</span><i /><span><strong>{services}</strong> external {services === 1 ? "service" : "services"}</span><i /><span><strong>{modules}</strong> modules</span><i /><span><strong>{graph.edges.length}</strong> relationships</span></div>
         <div className="graph-evidence-note"><Info size={14} />Only evidence-backed relationships are connected.<span>Source-backed analysis</span></div>
+        {view === "diagram" ? <SystemDiagramView diagram={diagram} enrichment={enrichment} selected={diagramItem?.id ?? null} onSelect={selectDiagramItem} onEnrich={onEnrich} /> :
         <div className="graph-canvas" aria-label="Architecture inspection graph">
-          {view === "system" ? <>
-            <div className="graph-legend"><span>↓ Execution direction</span><span>Source-declared possible paths · not runtime tracing</span>{executionFlows.length > 1 && <select aria-label="Execution flow" value={flowId} onChange={event => { const next = executionFlows.find(item => item.id === event.target.value)!; setFlowId(next.id); setFlowSelection(next.trigger); setInspectedOther(null); }}>{executionFlows.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>}</div>
-            {execution ? <SystemFlowCanvas key={execution.id} flow={execution} selected={flowSelection} onSelect={id => { setFlowSelection(id); setInspectedOther(null); }} /> : <div className="flow-empty">No supported source-declared execution flow was detected. Inspect structural dependencies in Dependency View.</div>}
-          </> : <>
           <div className="graph-legend"><span><i className="legend-module" />Source-backed dependencies</span><span><i className="legend-test" />Test modules</span><span>Arrows indicate imports, not runtime calls</span></div>
           <DependencyCanvas graph={graph} selected={selectedId} onSelect={setSelectedId} />
-          </>}
-          <div className="canvas-caption"><MousePointer2 size={13} />{view === "system" ? "Select a step or transition to inspect its source evidence" : "Arrows represent imports · select to inspect"}</div>
-        </div>
-        {view === "system" && otherComponents.length > 0 && <div className="other-components"><div><strong>Other detected components</strong><span>Participation in this execution flow is not proven.</span></div>{otherComponents.map(node => <button className={inspectedOther === node.id ? "selected" : ""} key={node.id} onClick={() => setInspectedOther(node.id)}>{node.label}<code>{node.subtitle}</code></button>)}</div>}
-        <footer className="workspace-status"><span><span className="neutral-dot" />Source-backed analysis</span><span>{view === "system" ? `${execution?.transitions.length ?? 0} source-declared transitions` : `${graph.edges.length} structural dependencies`} · read-only</span></footer>
+          <div className="canvas-caption"><MousePointer2 size={13} />Arrows represent imports · select to inspect</div>
+        </div>}
+        <footer className="workspace-status"><span><span className="neutral-dot" />Source-backed analysis</span><span>{graph.edges.length} structural dependencies · read-only</span></footer>
         {graph.limitations.length > 0 && <details className="graph-limitations"><summary>Analysis limitations ({graph.limitations.length})</summary>{graph.limitations.map(item => <p key={item}>{item}</p>)}</details>}
       </main>
-      {view === "system" && execution && !inspectedOther ? <FlowInspector flow={execution} graph={graph} selected={flowSelection} onSelect={setFlowSelection} /> : <ArchitectureInspector key={selectedId ?? "empty"} node={inspectedOther ? graph.nodes.find(node => node.id === inspectedOther) ?? null : selected} graph={graph} onSelect={setSelectedId} onClear={() => { setSelectedId(null); setInspectedOther(null); }} />}
+      {view === "diagram" && diagramItem && !diagramItem.nodeId ? <DiagramItemInspector item={diagramItem} layer={itemLayer} onClear={clear} /> :
+        <ArchitectureInspector key={selectedId ?? "empty"} node={selected} graph={graph} onSelect={id => { setSelectedId(id); setDiagramItem(null); }} onClear={clear} />}
   </div>;
 }

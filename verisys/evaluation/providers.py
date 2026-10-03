@@ -1,4 +1,5 @@
-"""Optional OpenAI SDK adapter. Only normalized architecture and bounded selection context leave this boundary."""
+"""Optional OpenAI SDK adapter. Callers decide what leaves this boundary: discovery sends normalized
+architecture and selection context; the opt-in understanding layer sends selected, redacted excerpts."""
 import os
 
 from pydantic import ConfigDict, Field, SecretStr, ValidationError

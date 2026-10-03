@@ -747,3 +747,17 @@ def test_local_requests_module_makes_http_identity_ambiguous(tmp_path):
     write(tmp_path, "app.py", "import requests\nrequests.get('u')\n")
     result = analyze(tmp_path)
     assert http_calls(result, "requests") == []
+
+
+def test_read_document_accepts_documentation_only(tmp_path):
+    from verisys.repository.safe_read import read_document
+    for name in ["README.md", "docs/a.rst", "notes.txt", "README", "web/package.json", "Dockerfile"]:
+        write(tmp_path, name, "hello\n")
+        assert read_document(tmp_path, Path(name)) == b"hello\n"
+    for name in ["app.py", "config.json", ".env", ".env.md", "node_modules/x/README.md", "../README.md"]:
+        with pytest.raises(UnsafeSourceError):
+            read_document(tmp_path, Path(name))
+    write(tmp_path, "bin.md", "\x00binary")
+    with pytest.raises(UnsafeSourceError) as rejected:
+        read_document(tmp_path, Path("bin.md"))
+    assert rejected.value.reason is ReadReason.BINARY

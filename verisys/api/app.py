@@ -22,6 +22,7 @@ from .verification import VerificationResult, project_result
 from verisys.models.enums import Applicability, ExecutionSupport, VerificationMode
 from verisys.evaluation import (DiscoveryError, StructuredGenerationClient, OpenAIClient,
                                 OpenAIConfig, discover_evaluations, normalize_architecture)
+from verisys.understanding import DiagramEnrichment, UnderstandingResult, enrich_diagram, understand_repository
 
 
 class AnalyzeRequest(DomainModel):
@@ -102,6 +103,12 @@ async def analysis_error(_request: Request, _exception: Exception):
 
 
 def analyze_root(repository):
+    result = _analyze(repository)
+    return result if isinstance(result, JSONResponse) else result[1]
+
+
+def _analyze(repository):
+    """(discovery, AnalyzeResponse) or a controlled error response."""
     path = repository.root
     if not path.is_absolute() or "\x00" in str(path):
         return error(400, "INVALID_REPOSITORY_PATH", "Provide an absolute local repository path.")
@@ -117,7 +124,7 @@ def analyze_root(repository):
         architecture = analyze_architecture(discovery)
         graph = project_architecture_graph(architecture)
         remote = isinstance(repository.source, GitHubRepositorySource)
-        return AnalyzeResponse(
+        return discovery, AnalyzeResponse(
             architecture_id=normalize_architecture(architecture).architecture_id,
             repository=RepositoryIdentity(
                 name=repository.source.owner_repo if remote else discovery.repository_root.name or "/",
@@ -239,7 +246,9 @@ def evaluations_discover(request: EvaluationDiscoveryRequest, client: Structured
 
 
 @app.exception_handler(DiscoveryError)
-async def configuration_error(_request: Request, exception: DiscoveryError):
+async def configuration_error(request: Request, exception: DiscoveryError):
+    if request.url.path in OPT_IN_PREFIXES:
+        return opt_in_error(exception.code, OPT_IN_PREFIXES[request.url.path])
     return discovery_error(exception.code)
 
 
@@ -269,3 +278,67 @@ def evaluations_verify(request: VerificationRequest, materializer=Depends(reposi
             return project_result(run, result.architecture_id)
         except Exception:
             return error(500, "VERIFICATION_FAILED", "The verification tool could not complete. No engineering verdict is available.")
+
+
+# Understanding is a separate, user-triggered operation: it sends selected, redacted
+# source and documentation excerpts to the configured model. Never part of analysis.
+class UnderstandingRequest(AnalyzeRequest):
+    expected_architecture_id: str = Field(pattern=r"^[0-9a-f]{64}$", strict=True)
+
+
+def understanding_client() -> StructuredGenerationClient:
+    """API composition only: process configuration, no implicit dotenv loading."""
+    model = (os.getenv("VERISYS_UNDERSTANDING_MODEL", "").strip()
+             or os.getenv("VERISYS_DISCOVERY_MODEL", "").strip())
+    if not model or not os.getenv("OPENAI_API_KEY", "").strip():
+        raise DiscoveryError("configuration_missing")
+    try:
+        return OpenAIClient(OpenAIConfig(model=model, timeout_seconds=90, max_output_tokens=6000))
+    except ValidationError:
+        raise DiscoveryError("configuration_invalid") from None
+
+
+# Opt-in model operations share pinned-source, freshness and error handling.
+OPT_IN_PREFIXES = {"/api/understanding": "UNDERSTANDING", "/api/diagram/enrich": "DIAGRAM"}
+
+
+def opt_in_error(code: str, prefix: str) -> JSONResponse:
+    if code.startswith("configuration_"):
+        return error(503, f"{prefix}_CONFIGURATION_MISSING", "This feature is unavailable. Configure the backend provider and model.")
+    if code == "provider_timeout":
+        return error(504, f"{prefix}_PROVIDER_FAILED", "The model provider timed out. No inferred content was produced.")
+    if code in {"provider_unavailable", "provider_refusal", "provider_incomplete"}:
+        return error(502, f"{prefix}_PROVIDER_FAILED", "The model provider could not complete this request. No inferred content was produced.")
+    return error(502, f"{prefix}_VALIDATION_FAILED", "The model response could not be validated. No inferred content was produced.")
+
+
+def run_opt_in(request: UnderstandingRequest, client, materializer, operation, prefix: str):
+    source = request.repository_source()
+    require_pinned(source)
+    with materializer.materialize(source) as repository:
+        analysis = _analyze(repository)
+        if isinstance(analysis, JSONResponse):
+            return analysis
+        discovery, result = analysis
+        if result.architecture_id != request.expected_architecture_id:
+            return error(409, "ANALYSIS_STALE", "The repository changed since the displayed analysis. Analyze the repository again before continuing.")
+        try:
+            return operation(discovery, result.architecture, architecture_id=result.architecture_id,
+                             repository=result.repository.name, client=client)
+        except DiscoveryError as failure:
+            return opt_in_error(failure.code, prefix)
+        except Exception:
+            return error(500, f"{prefix}_FAILED", "This operation could not be completed. No inferred content was produced.")
+
+
+@app.post("/api/understanding", response_model=UnderstandingResult)
+def understanding(request: UnderstandingRequest, client: StructuredGenerationClient = Depends(understanding_client),
+                  materializer=Depends(repository_materializer)):
+    return run_opt_in(request, client, materializer, understand_repository, "UNDERSTANDING")
+
+
+# Detected diagram layers come from the analysis graph; this adds inferred components only.
+@app.post("/api/diagram/enrich", response_model=DiagramEnrichment)
+def diagram_enrich(request: UnderstandingRequest, client: StructuredGenerationClient = Depends(understanding_client),
+                   materializer=Depends(repository_materializer)):
+    return run_opt_in(request, client, materializer, enrich_diagram, "DIAGRAM")

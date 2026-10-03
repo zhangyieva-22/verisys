@@ -158,3 +158,13 @@ The analyzer now inspects `with` / `async with` bodies, which makes OpenAI calls
 Catalog v2 adds the evaluation; because the catalog is hashed into `architecture_id`, every architecture ID changed once.
 OpenAI verification evidence is unchanged for repositories without `with` blocks.
 See [the design](http-client-timeout.md) and [the catalog](evaluation-catalog.md).
+
+## Implemented: understanding layer
+
+On an explicit user request, a language model proposes functional requirements and engineering risks for the analyzed repository.
+The server selects README, documentation, source around routes and integrations, entry points and test names within fixed budgets, and redacts likely secrets before sending them.
+The server keeps only citations whose quoted text appears in the lines it sent, and drops claims left without a valid citation.
+Every item is labelled inferred, not verified, and appears in a separate Understanding section; it is never Evidence or a Verdict.
+See [the understanding layer](understanding-layer.md).
+The Architecture tab now shows only the Dependency View; the System Flow canvas was removed because it was empty for repositories without a LangGraph `StateGraph`.
+The Architecture tab's default view is a layered System Diagram built from detected facts; Enrich with AI adds cited, inferred components (such as client, frontend and infrastructure) and a request path, drawn as visibly inferred.

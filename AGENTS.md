@@ -39,8 +39,8 @@ architecture constraints and runtime behavior. It is not limited to NFRs.
   Resolve once, then reacquire the full commit SHA plus architecture_id for later stages.
   PROACTIVE and bounded ON_DEMAND use only eligible option IDs; unmatched concerns
   produce no candidate. Only the two static timeout verifiers execute.
-- ArchitectureIR, graph projection, System Flow, Dependency View and the local
-  analysis API/UI are implemented. ExecutionFlow means source-declared possible
+- ArchitectureIR, graph projection, System Diagram, Dependency View and the local
+  analysis API/UI are implemented; the former System Flow view was removed. ExecutionFlow means source-declared possible
   control flow, not observed runtime execution.
 - M4 Core executes one static policy: explicit per-call timeout coverage for
   supported direct OpenAI calls. Stripe/Twilio and wrapper timeout verification
@@ -96,6 +96,20 @@ architecture constraints and runtime behavior. It is not limited to NFRs.
 - Live discovery is opt-in. Never run it merely because a key exists. Do not retry
   to obtain preferred recommendations. Keep provider diagnostics bounded and
   separate from Evidence/Trace.
+
+## Understanding layer contract
+
+- The understanding layer (Understanding section and System Diagram enrichment) is
+  the only path that sends repository source to a model.
+  It runs only on an explicit user request, never during analysis, discovery or
+  verification, and is never retried automatically.
+- The server selects bounded excerpts deterministically from discovered files and
+  redacts likely secrets first. The model has no tools and cannot request more input.
+  Never read `.env` files or send absolute paths, credentials or verification results.
+- Every returned claim is INFERRED_NOT_VERIFIED. Keep a citation only if its quote
+  appears in the exact lines sent; drop claims without a valid citation; never repair.
+- Inferred claims are never Evidence or a Verdict and never feed discovery or
+  verification. See [the understanding layer](docs/understanding-layer.md).
 
 ## Repository and credential safety
 
