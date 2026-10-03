@@ -103,7 +103,7 @@ architecture constraints and runtime behavior. It is not limited to NFRs.
 ## Understanding layer contract
 
 - The understanding layer (Understanding section and System Diagram enrichment) is
-  the only path that sends repository source to a model.
+  a path that sends repository source to a model. Explicit AI plan drafting reuses the same bounded, redacted excerpt selection and citation validation.
   It runs only on an explicit user request, never during analysis, discovery or
   verification, and is never retried automatically.
 - The server selects bounded excerpts deterministically from discovered files and
@@ -111,6 +111,7 @@ architecture constraints and runtime behavior. It is not limited to NFRs.
   Never read `.env` files or send absolute paths, credentials or verification results.
 - Every returned claim is INFERRED_NOT_VERIFIED. Keep a citation only if its quote
   appears in the exact lines sent; drop claims without a valid citation; never repair.
+- AI plan drafts are DRAFT_NOT_EXECUTED, never executable VerificationPlan objects, Evidence or Verdicts. Planning is user-triggered and does not execute scripts or verifiers.
 - Inferred claims are never Evidence or a Verdict and never feed discovery or
   verification. See [the understanding layer](docs/understanding-layer.md).
 

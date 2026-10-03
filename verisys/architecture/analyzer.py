@@ -32,6 +32,7 @@ def _known_local_collisions(discovery: DiscoveryResult) -> set[str]:
 def analyze_architecture(
     discovery: DiscoveryResult, *, limits: DiscoveryLimits | None = None,
     on_source: Callable[[Path, bytes], None] | None = None,
+    on_non_call_limitation: Callable[[str], None] | None = None,
 ) -> ArchitectureIR:
     """Inspect only discovered paths. No imports, execution, or file walking.
 
@@ -100,7 +101,7 @@ def analyze_architecture(
         parsed[relative] = tree
         try:
             collect_dependencies(tree, relative, modules, ambiguous, result)
-            SourceAnalyzer(relative, modules, ambiguous, result, collisions=collisions).visit(tree)
+            SourceAnalyzer(relative, modules, ambiguous, result, collisions=collisions, on_non_call_limitation=on_non_call_limitation).visit(tree)
         except RecursionError:
             result.limitations.append(f"{label}: AST traversal depth exceeded; file only partially inspected.")
 

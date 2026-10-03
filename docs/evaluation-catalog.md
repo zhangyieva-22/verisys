@@ -152,7 +152,7 @@ AND scope_complete
 `total = configured + missing + unknown`. Definitive coverage percentage is emitted
 only for nonempty complete scope without unknown observations. Unknown is not
 counted as missing. The golden example gives 2 configured, 1 missing, 0 unknown,
-66.7%, VIOLATED. Architecture limitations conservatively prevent complete-scope
+66.7%, VIOLATED. Call-scope architecture limitations conservatively prevent complete-scope
 VERIFIED/NOT_APPLICABLE; their prose is not interpreted to invent completeness.
 Execution support can be PARTIAL while execution status is COMPLETED.
 
@@ -232,3 +232,26 @@ invent business criticality, workload or performance targets. No aggregate
 architecture health score is part of this catalog.
 
 For implementation extension points, see [the evaluation extension path](architecture.md#evaluation-extension-path).
+
+### Bounded demo coverage refinement
+
+Static analysis now inspects possible `try`/`except`/`else`/`finally` paths without
+executing them. Supported names reassigned on a path are conservatively invalidated;
+branch-specific bindings are not propagated outside the block. `TryStar`, loops,
+wrappers and arbitrary cross-file client resolution remain unsupported.
+
+The analyzer explicitly tags unresolved FastAPI router mounting as unrelated to
+external call coverage. Verification preserves that limitation for display but
+does not use it to block timeout completeness. Other limitations still block
+complete-scope success; no limitation prose is parsed to infer safety.
+
+A configured observation in an incomplete repository remains a local finding,
+not a repository-wide VERIFIED verdict.
+
+### Plans for unavailable checks
+
+An installed verifier is still required for Run Verification. An unavailable
+catalog evaluation can instead request an AI plan draft grounded in selected
+source. Functional test-plan drafting is a separate scope, not a new selectable
+catalog evaluation. Neither operation changes ExecutionSupport, supplies
+Evidence/Verdict, sets performance targets authoritatively or executes tests.

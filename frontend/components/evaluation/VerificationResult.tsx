@@ -12,12 +12,15 @@ export function VerificationResult({ result, onRerun }: { result: Result; onReru
   return <section className="verification-result" aria-label="Verification result">
     <header><span>STATIC VERIFICATION RESULT</span><h3>{result.evaluation_name}</h3></header>
     {savedNote(result.stored) && <p className="saved-note">{savedNote(result.stored)}{onRerun && <button onClick={onRerun}>Re-run verification</button>}</p>}
-    <div className={`verification-outcome result-status ${(result.verdict_status ?? result.applicability).toLowerCase()}`}>{result.verdict_status ?? result.applicability}</div>
+    <div className={`verification-outcome result-status ${result.verdict_status ? "verified" : result.applicability.toLowerCase()}`}>{result.verdict_status ? "VERIFIED" : result.applicability}</div>
+    {result.verdict_status === 'NOT_VERIFIABLE' && <p className="check-unavailable"><strong>Cannot verify:</strong> this inspection did not establish a conclusive result. Review the missing evidence and scope limitations below.</p>}
     <dl className="suggestion-labels"><div><dt>Applicability</dt><dd>{result.applicability}</dd></div>
       <div><dt>Execution</dt><dd>{result.execution_status}</dd></div><div><dt>Mode</dt><dd>{result.verification_mode}</dd></div>
       {result.verdict_status && <div><dt>Verdict</dt><dd className={`result-status ${result.verdict_status.toLowerCase()}`}>{result.verdict_status}</dd></div>}</dl>
     <p><strong>Policy:</strong> {result.policy}</p>
     <p>{result.summary}</p>
+    <p className="result-explanation">Inspected calls: {result.counts.total} · Configured: {result.counts.configured} · Missing: {result.counts.missing} · Unresolved: {result.counts.unknown}.</p>
+    {!result.coverage_complete && <p className="result-explanation">The observations below describe inspected calls. They do not confirm coverage of every call in the repository. Expand policy and inspection limitations for the remaining gaps.</p>}
     <div className="verification-counts">{Object.entries(result.counts).map(([label, value]) => <span key={label}><strong>{value}</strong> {label}</span>)}</div>
     <p className="coverage">{result.coverage_percent !== null ? `Definitive coverage: ${result.coverage_percent}%` : result.applicability === 'NOT_APPLICABLE' ? 'Coverage is not applicable.' : 'Coverage incomplete · no definitive percentage available.'}</p>
     <p className="discovery-note">Static source configuration only. No runtime timeout behavior or reliability was measured.</p>

@@ -41,7 +41,7 @@ test('idle discovery is deliberate; repeated clicks cannot duplicate an in-fligh
     assert.equal(ui.container.querySelector('section')?.getAttribute('data-state'),'READY');
     assert.ok(ui.getByText('APPLICABLE')); assert.ok(ui.getByText('NOT_AVAILABLE'));
     assert.ok(ui.getByText('PERFORMANCE')); assert.ok(ui.getByText('MEDIUM'));
-    assert.ok(ui.getByText('Worth investigating, but Verisys cannot execute this verification yet.'));
+    assert.ok(ui.getByText('Plan needed · No executor is installed for this check. Generate steps, prerequisites and evidence to collect.'));
     assert.ok(ui.getByText('Executed load-test measurements'));
     assert.equal(ui.queryByText('VERIFIED'),null); assert.equal(ui.queryByText('VIOLATED'),null);
   } finally {restore();}

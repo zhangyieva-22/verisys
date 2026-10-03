@@ -504,3 +504,53 @@ missing, corrupt, oversized or no-longer-valid file is treated as a miss.
 - Requests accept `refresh: true` to bypass the saved result; responses report
   `stored: {reused, saved_at}`. A saved result is a reproduction of an earlier run,
   never new Evidence, and saving failures never fail a request.
+
+### Static timeout scope refinement
+
+The analyzer supports conservative source inspection of `try` paths. Its optional
+`on_non_call_limitation` callback supplies explicitly classified route-mount
+limitations to static verification without changing ArchitectureIR serialization.
+Timeout inspection excludes only these classified non-call limitations from
+completeness, preserves them in output, and keeps every other coverage guard.
+
+### Opt-in test-plan drafting
+
+`POST /api/evaluations/plan` accepts a repository source, expected_architecture_id
+and target_id. The target is `functional-requirements` or an existing catalog ID
+with an eligible option in the fresh architecture. GitHub sources must be pinned.
+The server re-analyzes and rejects stale snapshots before invoking the provider.
+It reuses Understanding's safe bounded excerpt selection, secret redaction, model
+configuration and verbatim citation checks. No automatic call, retry or execution
+is added. Plan targets and functional/non-functional kind are server-owned.
+
+The model proposes objectives, prerequisites, test steps, required evidence and
+acceptance questions in a strict schema. Invalid grounding drops the draft;
+provider/validation failures remain errors. A quote match validates only the
+source reference, not the correctness of a test design. Plans remain
+DRAFT_NOT_EXECUTED and are separate from domain VerificationPlan, Evidence,
+Verdict, discovery and registered verifier execution. No scripts are executed.
+
+The Verifications UI groups checks by functional or non-functional purpose,
+independently of execution capability. Each catalog check shows its capability
+and required evidence; each functional draft is a separate behavior check.
+Unsupported checks offer Generate verification plan; installed checks retain Run
+Verification. No functional executor is currently installed. Catalog suggestions
+are model-selected eligible options, not verification results. Plan state is temporary component state, cleared
+on repository/snapshot changes and when unmounted; it is not persisted history.
+
+Verification UI capability wording distinguishes an installed executor from a
+conclusive outcome. Unknown/inapplicable subjects are labelled unable to verify
+conclusively and offer scope inspection only; NOT_VERIFIABLE results retain their
+evidence and explicitly state that no pass/fail conclusion is available. Eligible
+applicable checks are pending until run, never promised a definitive verdict.
+
+An explicit demo preview displays simulated VERIFIED labels for installed
+verifiers. It is conspicuously labelled SIMULATED / NOT ACTUALLY VERIFIED,
+never calls an API, creates no Evidence/Verdict, and is held only in component
+state. It resets on snapshot changes or rediscovery and is excluded from saved
+result callbacks. Real results remain accessible on exiting demo mode.
+
+The current result headline is a user-requested hardcoded frontend VERIFIED label
+when a verdict exists. It does not represent server judgment; the actual Verdict,
+summary, limitations and evidence remain unchanged below. This presentation
+override must not be used as verification authority.

@@ -289,3 +289,34 @@ def test_evidence_snapshot_and_judge_without_filesystem(tmp_path, monkeypatch):
     from pydantic import ValidationError
     with pytest.raises(ValidationError):
         evidence.tool = 'changed'
+
+@pytest.mark.parametrize('arguments,status', [('timeout=10', 'VERIFIED'), ('', 'VIOLATED'), ('timeout=value', 'NOT_VERIFIABLE')])
+def test_try_call_policy(tmp_path, arguments, status):
+    repository(tmp_path, [f'try:\n    client.responses.create({arguments})\nexcept Exception:\n    pass'])
+    result = verify_timeout_coverage(tmp_path)
+    assert result.verdict.status == status
+    assert len(observations(result)) == 1
+    assert observations(result)[0].source_location.line == 4
+
+
+def test_router_mount_does_not_invalidate_timeout_scope(tmp_path):
+    repository(tmp_path, ['client.responses.create(timeout=10)',
+                         'from fastapi import FastAPI, APIRouter', 'app=FastAPI()',
+                         'router=APIRouter()', 'app.include_router(router)'])
+    result = verify_timeout_coverage(tmp_path)
+    assert result.verdict.status == 'VERIFIED'
+    assert any('Router mounting' in item for item in result.limitations)
+
+
+def test_try_rebinding_does_not_produce_false_calls(tmp_path):
+    repository(tmp_path, ['try:\n    client=unrelated\n    client.responses.create(timeout=10)\nexcept Exception:\n    client.responses.create(timeout=10)',
+                         'client.responses.create(timeout=10)'])
+    result = verify_timeout_coverage(tmp_path)
+    assert observations(result) == []
+    assert result.verdict.status == 'NOT_VERIFIABLE'
+
+
+def test_parse_failure_still_blocks_complete_scope(tmp_path):
+    repository(tmp_path, ['client.responses.create(timeout=10)'])
+    (tmp_path / 'broken.py').write_text('def broken(')
+    assert verify_timeout_coverage(tmp_path).verdict.status == 'NOT_VERIFIABLE'

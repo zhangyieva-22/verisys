@@ -55,9 +55,12 @@ def _verify(case: TimeoutCase, root: str | Path, limits: DiscoveryLimits | None)
     plan = timeout_plan(requirement, case)
     discovery = discover_repository(root, limits=limits)
     hashes = {}
+    non_call_limitations = []
     architecture = analyze_architecture(discovery,
-        on_source=lambda path, data: hashes.__setitem__(path, hashlib.sha256(data).hexdigest()))
-    evidence = inspect_call_timeouts(policy, discovery, architecture, hashes)
+        on_source=lambda path, data: hashes.__setitem__(path, hashlib.sha256(data).hexdigest()),
+        on_non_call_limitation=non_call_limitations.append)
+    evidence = inspect_call_timeouts(policy, discovery, architecture, hashes,
+                                     non_call_limitations=non_call_limitations)
     judgment = judge_timeouts(evidence, policy_id=policy.policy_id, tool=policy.tool)
     scope = evidence[-1].observed_value
     evaluation = EvaluationCandidate(id=policy.policy_id, name=case.name, category="Reliability",

@@ -187,7 +187,7 @@ h2 { font-size: 20px; letter-spacing: -0.5px; font-weight: 600; margin-top: 0; m
 /* Suggested checks are recommendation state, separate from graph/verification. */
 .suggested-verifications { border-top: 1px solid #2c2c33; padding: 20px 24px; background: #151519; }
 .suggested-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-.suggested-heading h2 { font-size: 17px; margin-bottom: 5px; }
+.suggested-heading h2 { color:#a8bfb2; font-size: 17px; margin-bottom: 5px; }
 .suggested-heading p, .suggestion p { font-size: 12px; line-height: 1.6; color: #b5b5bf; }
 .suggested-heading button { flex-shrink: 0; padding: 9px 12px; font-size: 11px; }
 .suggested-heading button:disabled { opacity: .6; cursor: wait; }
@@ -542,3 +542,47 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 /* Reused saved results stay visibly distinct from a fresh run. */
 .saved-note { display:flex; flex-wrap:wrap; align-items:center; gap:10px; font-size:12px; color:#9bd5b6; margin:8px 0; }
 .saved-note button { color:#9bd5b6; text-decoration:underline; font-size:12px; }
+
+.verification-group { border-bottom:1px solid var(--line); padding-bottom:26px; margin-bottom:26px; }
+.verification-group-heading { margin-bottom:20px; }
+.verification-group-heading h2 { color:#9bd5b6; font-size:28px; line-height:1.35; margin-bottom:8px; }
+.verification-group-heading p { color:#aaaab7; font-size:13px; line-height:1.7; max-width:780px; }
+.plan-experience { margin:15px 0; }
+.suggestion .check-capability, .plan-draft .check-capability { color:#9bd5b6; font-size:11px; margin:8px 0 12px; }
+.check-evidence { margin:16px 0; padding:12px 0; border-top:1px solid var(--line); font-size:12px; color:#b4bcc0; }
+.check-evidence strong { color:#a8bfb2; }
+.check-evidence ul { padding-left:20px; margin:8px 0; line-height:1.7; }
+.check-evidence p { font-size:11px; }
+.functional-group { display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:24px; }
+.functional-group .verification-group-heading { grid-column:1; grid-row:1; margin-bottom:0; }
+.functional-group > .plan-experience { display:contents; }
+.functional-group > .plan-experience > button { grid-column:2; grid-row:1; align-self:start; padding:9px 12px; font-size:11px; }
+.functional-group > .plan-experience > button,
+.suggested-verifications > .suggested-heading > button { box-sizing:border-box; width:208px; height:38px; padding:9px 12px; white-space:nowrap; }
+.functional-group > .plan-experience > :not(button) { grid-column:1 / -1; }
+@media (max-width:760px) {
+  .functional-group { grid-template-columns:1fr; }
+  .functional-group > .plan-experience > button { grid-column:1; grid-row:auto; justify-self:start; margin-top:16px; }
+}
+.plan-experience .plan-disclosure { color:#999fa6; font-size:11px; margin:9px 0; max-width:680px; }
+.plan-results { border-left:2px solid #78bd9b; padding:18px 22px; margin-top:18px; background:#171d1a; }
+.plan-label { color:#a8dec2!important; font:10px var(--font-geist-mono),monospace!important; letter-spacing:.08em; }
+.plan-draft { padding:20px 0; border-bottom:1px solid var(--line); }
+.plan-draft h3 { font-size:18px; }
+.plan-draft h4 { font-size:13px; margin:15px 0 8px; }
+.plan-draft p,.plan-draft li { color:#b4bcc0; font-size:13px; line-height:1.7; }
+.plan-draft-columns { display:grid; grid-template-columns:1fr 1fr; gap:30px; }
+.plan-draft ul,.plan-draft ol { padding-left:20px; }
+.plan-results details { font-size:12px; margin-top:16px; }
+.plan-results summary { cursor:pointer; color:#a8dec2; }
+.plan-citation { padding:12px 0; }
+.plan-citation blockquote { margin:8px 0; color:#b4bcc0; font-size:12px; border-left:1px solid #52675b; padding-left:12px; }
+@media(max-width:750px) { .plan-draft-columns{grid-template-columns:1fr;gap:0;} .plan-results{padding:15px;} }
+
+.verification-demo-controls { margin:18px 0; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+.verification-demo-controls p { color:#bcb7a8; font-size:11px; }
+.verification-demo-banner { border:1px solid #a78c55; background:#242017; padding:14px 16px; color:#edcc85; }
+.verification-demo-banner p { margin-top:8px; font-size:12px; line-height:1.6; }
+.simulated-check-result { margin:16px 0; padding:14px 16px; border-left:3px solid #d5b16c; background:#242017; }
+.simulated-check-result > strong { color:#edcc85; font-size:11px; letter-spacing:.05em; }
+.simulated-check-result p { margin:8px 0 0; }

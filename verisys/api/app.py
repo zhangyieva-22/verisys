@@ -389,7 +389,7 @@ def understanding_client() -> StructuredGenerationClient:
 
 
 # Opt-in model operations share pinned-source, freshness and error handling.
-OPT_IN_PREFIXES = {"/api/understanding": "UNDERSTANDING", "/api/diagram/enrich": "DIAGRAM"}
+OPT_IN_PREFIXES = {"/api/understanding": "UNDERSTANDING", "/api/diagram/enrich": "DIAGRAM", "/api/evaluations/plan": "PLAN"}
 
 
 def opt_in_error(code: str, prefix: str) -> JSONResponse:
@@ -444,3 +444,39 @@ def understanding(request: UnderstandingRequest, client: StructuredGenerationCli
 def diagram_enrich(request: UnderstandingRequest, client: StructuredGenerationClient = Depends(understanding_client),
                    materializer=Depends(repository_materializer)):
     return run_opt_in(request, client, materializer, enrich_diagram, "DIAGRAM")
+
+
+# Drafting is opt-in and separate from verification and catalog selection.
+from verisys.understanding.planning import FUNCTIONAL_TARGET, PlanningResult, propose_plans
+
+
+class PlanningRequest(AnalyzeRequest):
+    expected_architecture_id: str = Field(pattern=r"^[0-9a-f]{64}$", strict=True)
+    target_id: str = Field(min_length=1, max_length=100, strict=True)
+
+
+@app.post("/api/evaluations/plan", response_model=PlanningResult)
+def evaluation_plan(request: PlanningRequest, client=Depends(understanding_client),
+                    materializer=Depends(repository_materializer)):
+    source = request.repository_source()
+    require_pinned(source)
+    if request.target_id != FUNCTIONAL_TARGET and request.target_id not in CATALOG:
+        return error(400, "PLAN_UNSUPPORTED", "Unknown planning target.")
+    with materializer.materialize(source) as repository:
+        analysis = _analyze(repository)
+        if isinstance(analysis, JSONResponse):
+            return analysis
+        discovery, result = analysis
+        if result.architecture_id != request.expected_architecture_id:
+            return error(409, "ANALYSIS_STALE", "The repository changed. Analyze again before generating a plan.")
+        if request.target_id != FUNCTIONAL_TARGET:
+            normalized = normalize_architecture(result.architecture)
+            if not any(o.evaluation_id == request.target_id for o in normalized.eligible_options):
+                return error(400, "PLAN_UNSUPPORTED", "No grounded planning opportunity exists for this target.")
+        try:
+            return propose_plans(discovery, result.architecture, architecture_id=result.architecture_id,
+                                 repository=result.repository.name, target_id=request.target_id, client=client)
+        except DiscoveryError as failure:
+            return opt_in_error(failure.code, "PLAN")
+        except Exception:
+            return error(500, "PLAN_FAILED", "The plan could not be generated. No verification was executed.")

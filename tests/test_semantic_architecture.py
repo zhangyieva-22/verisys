@@ -74,9 +74,10 @@ def test_local_library_collision_is_not_external_semantics(tmp_path):
 
 def test_tool_factory_and_unsupported_scopes_remain_limitations(tmp_path):
     ir = analyze(tmp_path, 'from langchain_core.tools import tool\nimport sqlite3\n@tool("renamed")\ndef f():\n    pass\ntry:\n    sqlite3.connect("x")\nexcept Exception:\n    pass\n')
-    assert ir.tools == [] and ir.datastores == []
+    assert ir.tools == []
+    assert len(ir.datastores) == 1
+    assert ir.datastores[0].source_locations[0].line == 7
     assert any("decorator factory" in text for text in ir.limitations)
-    assert any("Try" in text for text in ir.limitations)
 
 
 def test_semantic_models_serialize_and_default_lists_are_isolated():

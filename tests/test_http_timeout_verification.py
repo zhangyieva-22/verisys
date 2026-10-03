@@ -176,3 +176,16 @@ def test_truncated_scope_cannot_verify(tmp_path):
 
 def test_registered_verifier():
     assert get_verifier("http-client-timeout-coverage-v1") is verify_http_timeout_coverage
+
+@pytest.mark.parametrize('argument,status', [('timeout=90','VERIFIED'), ('','VIOLATED'), ('timeout=value','NOT_VERIFIABLE')])
+def test_requests_in_try_has_real_observations(tmp_path, argument, status):
+    result=run(tmp_path, f'import requests\ntry:\n    requests.post("https://example.invalid", {argument})\nexcept Exception:\n    pass\n')
+    assert result.verdict.status == status
+    assert len(calls(result)) == 1
+    assert result.evidence[0].source_location.line == 3
+
+
+def test_exception_alias_cannot_be_mistaken_for_http_library(tmp_path):
+    result=run(tmp_path, 'import requests\ntry:\n    pass\nexcept Exception as requests:\n    requests.get("x",timeout=5)\n')
+    assert calls(result) == []
+    assert result.verdict.status == 'NOT_VERIFIABLE'

@@ -171,11 +171,12 @@ def _module_rebindings(tree):
 
 
 class SourceAnalyzer(ast.NodeVisitor):
-    def __init__(self, path, modules, ambiguous, result, *, collisions=None):
+    def __init__(self, path, modules, ambiguous, result, *, collisions=None, on_non_call_limitation=None):
         self.path, self.modules, self.ambiguous, self.result = path, modules, ambiguous, result
         self.bindings: dict[str, str] = {}
         self.function_parent = None
         self.collisions = collisions or set()
+        self.on_non_call_limitation = on_non_call_limitation
         self.invalidated_attributes: set[str] = set()
         self.rebound_globals: set[str] = set()
 
@@ -183,8 +184,11 @@ class SourceAnalyzer(ast.NodeVisitor):
         self.rebound_globals = _module_rebindings(node)
         self.generic_visit(node)
 
-    def limit(self, node, summary):
-        self.result.limitations.append(f"{self.path.as_posix()}:{node.lineno}: {summary}")
+    def limit(self, node, summary, *, affects_calls=True):
+        message = f"{self.path.as_posix()}:{node.lineno}: {summary}"
+        self.result.limitations.append(message)
+        if not affects_calls and self.on_non_call_limitation is not None:
+            self.on_non_call_limitation(message)
 
     def service(self, library, node, *, call=False):
         name = SERVICES[library]
@@ -268,7 +272,7 @@ class SourceAnalyzer(ast.NodeVisitor):
         if symbol == "fastapi.APIRouter" and any(keyword.arg == "prefix" for keyword in node.keywords):
             self.limit(node, "Router prefix is not composed; detected route paths are decorator literals.")
         if symbol == "route:.include_router":
-            self.limit(node, "Router mounting is not resolved; detected route paths are decorator literals.")
+            self.limit(node, "Router mounting is not resolved; detected route paths are decorator literals.", affects_calls=False)
         if symbol == "sqlite3.connect":
             store = next((item for item in self.result.datastores if item.engine == "sqlite3"), None)
             if store is None:
@@ -419,6 +423,27 @@ class SourceAnalyzer(ast.NodeVisitor):
         if body != self.bindings:
             self.limit(node, "Conditional bindings differ; ambiguous bindings are not propagated.")
 
+    def visit_Try(self, node):
+        # Inspect possible paths only. A known alias assigned on any path is
+        # ambiguous at entry and exit; never propagate a branch's client identity.
+        outer = self.bindings.copy()
+        written = {child.id for child in ast.walk(node)
+                   if isinstance(child, ast.Name) and isinstance(child.ctx, (ast.Store, ast.Del))}
+        written.update(handler.name for handler in node.handlers if handler.name)
+        for child in ast.walk(node):
+            if isinstance(child, (ast.Import, ast.ImportFrom)):
+                written.update(alias.asname or alias.name.split(".")[0] for alias in child.names)
+            elif isinstance(child, ast.Attribute) and isinstance(child.ctx, (ast.Store, ast.Del)):
+                self.invalidate_attribute(child)
+        if any(self.known_binding(outer.get(name)) for name in written):
+            self.limit(node, "Try reassigns a supported binding; cross-path identity is unresolved.")
+        base = {name: value for name, value in outer.items() if name not in written}
+        for statements in [node.body, *(handler.body for handler in node.handlers), node.orelse, node.finalbody]:
+            self.bindings = base.copy()
+            for statement in statements:
+                self.visit(statement)
+        self.bindings = base
+
     def unsupported_scope(self, node):
         self.limit(node, f"{type(node).__name__} service/route bindings are unsupported; body not inspected.")
         # Such a body can rebind an outer name. Drop affected aliases rather
@@ -445,7 +470,6 @@ class SourceAnalyzer(ast.NodeVisitor):
     visit_For = unsupported_scope
     visit_AsyncFor = unsupported_scope
     visit_While = unsupported_scope
-    visit_Try = unsupported_scope
     visit_TryStar = unsupported_scope
     visit_Match = unsupported_scope
     visit_Lambda = unsupported_scope

@@ -29,7 +29,7 @@ test('GitHub is primary; ref/mode/concern fields produce bounded intent',async()
   assert.deepEqual(bodies[0],{source:{type:'github',url,ref:'main'}});
   assert.deepEqual(bodies[1],{source,expected_architecture_id:hash,mode:'ON_DEMAND',request_text:'Check OpenAI timeouts'});
   assert.ok(ui.getByText(/owner\/repo · 3d38d5a/));fireEvent.click(ui.getByRole('button',{name:'Architecture'}));fireEvent.click(ui.getByRole('button',{name:'Dependency View'}));assert.equal(ui.container.querySelectorAll('.react-flow__node').length,14);
-  assert.ok(ui.getByText('Verification not available yet').hasAttribute('disabled'));
+  assert.ok(ui.getAllByText('Generate verification plan').some(button=>!button.hasAttribute('disabled')));
  }finally{restore();}
 });
 

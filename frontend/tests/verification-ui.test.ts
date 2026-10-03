@@ -44,9 +44,9 @@ test('installed capability allows UNKNOWN/PARTIAL; running deduplicates and resu
     calls++;assert.deepEqual(JSON.parse(String(options?.body)),{repository_path:props.repositoryPath,evaluation_id:id,expected_architecture_id:architectureId});
     return new Promise<Response>(done=>{resolve=done;});};
   try{const ui=render(createElement(SuggestedVerifications,props));fireEvent.click(ui.getByText('Discover Verifications'));
-    await waitFor(()=>assert.ok(ui.getByText('Run Verification')));
-    assert.ok(ui.getByText('Verification not available yet').hasAttribute('disabled'));
-    fireEvent.click(ui.getByText('Run Verification'));fireEvent.click(ui.getByText('Run Verification'));
+    await waitFor(()=>assert.ok(ui.getByText('Inspect available scope')));
+    assert.ok(ui.getAllByRole('button',{name:'Generate verification plan'}).some(button=>!button.hasAttribute('disabled')));
+    fireEvent.click(ui.getByText('Inspect available scope'));fireEvent.click(ui.getByText('Inspect available scope'));
     assert.equal(calls,1);assert.ok(ui.getByText(/Running static verification/));
     resolve(response(result));await waitFor(()=>assert.ok(ui.getByLabelText('Verification result')));
     assert.ok(ui.getByText('Definitive coverage: 66.7%'));
@@ -58,9 +58,9 @@ for(const code of ['VERIFICATION_FAILED','VERIFICATION_UNSUPPORTED','ANALYSIS_FA
   let analyses=0;
   globalThis.fetch=async url=>url==='/api/evaluations/discover'?response(discovery):response({error:{code,message:'Controlled failure'}},code==='ANALYSIS_STALE'?409:500);
   try{const ui=render(createElement(SuggestedVerifications,{...props,onAnalyze:()=>{analyses++;}}));fireEvent.click(ui.getByText('Discover Verifications'));
-    await waitFor(()=>assert.ok(ui.getByText('Run Verification')));fireEvent.click(ui.getByText('Run Verification'));
+    await waitFor(()=>assert.ok(ui.getByText('Inspect available scope')));fireEvent.click(ui.getByText('Inspect available scope'));
     await waitFor(()=>assert.ok(ui.getByRole('alert')));assert.ok(ui.getByText(code));assert.equal(ui.queryByLabelText('Verification result'),null);
-    if(code==='ANALYSIS_STALE'){assert.ok(ui.getByText('Run Verification').hasAttribute('disabled'));fireEvent.click(ui.getByText('Analyze Repository again →'));assert.equal(analyses,1);}
+    if(code==='ANALYSIS_STALE'){assert.ok(ui.getByText('Inspect available scope').hasAttribute('disabled'));fireEvent.click(ui.getByText('Analyze Repository again →'));assert.equal(analyses,1);}
   }finally{restore();}
  });
 }
@@ -68,7 +68,7 @@ test('changed analysis clears result and aborts/ignores late execution',async()=
   let resolve!:(r:Response)=>void,signal:AbortSignal|null|undefined;
   globalThis.fetch=async(url,options)=>url==='/api/evaluations/discover'?response(discovery):(signal=options?.signal,new Promise<Response>(done=>{resolve=done;}));
   try{const ui=render(createElement(SuggestedVerifications,props));fireEvent.click(ui.getByText('Discover Verifications'));
-    await waitFor(()=>assert.ok(ui.getByText('Run Verification')));fireEvent.click(ui.getByText('Run Verification'));
+    await waitFor(()=>assert.ok(ui.getByText('Inspect available scope')));fireEvent.click(ui.getByText('Inspect available scope'));
     ui.rerender(createElement(SuggestedVerifications,{...props,architectureId:'b'.repeat(64)}));assert.equal(signal?.aborted,true);
     resolve(response(result));await waitFor(()=>assert.equal(ui.container.querySelector('[data-verification-state]')?.getAttribute('data-verification-state'),'IDLE'));
     assert.equal(ui.queryByLabelText('Verification result'),null);
@@ -83,7 +83,7 @@ test('verification client rejects malformed and mismatched DTOs',async()=>{
 test('completed result is cleared when repository analysis changes',async()=>{
   globalThis.fetch=async url=>response(url==='/api/evaluations/discover'?discovery:result);
   try{const ui=render(createElement(SuggestedVerifications,props));fireEvent.click(ui.getByText('Discover Verifications'));
-    await waitFor(()=>assert.ok(ui.getByText('Run Verification')));fireEvent.click(ui.getByText('Run Verification'));
+    await waitFor(()=>assert.ok(ui.getByText('Inspect available scope')));fireEvent.click(ui.getByText('Inspect available scope'));
     await waitFor(()=>assert.ok(ui.getByLabelText('Verification result')));
     ui.rerender(createElement(SuggestedVerifications,{...props,repositoryPath:'/projects/new'}));
     assert.equal(ui.queryByLabelText('Verification result'),null);
@@ -101,4 +101,105 @@ test('http timeout sources are labelled; OpenAI observations show none',()=>{
   try {const ui=render(createElement(VerificationResult,{result}));
     assert.equal(ui.container.querySelector('.timeout-source'),null);
   }finally{restore();}
+});
+
+test('HTTP verification loading and result expand inside the selected suggestion without scrolling',async()=>{
+  const httpId='http-client-timeout-coverage-v1';
+  const httpCandidate={...candidate,id:httpId,name:'HTTP Client Timeout Coverage'};
+  const httpResult={...result,evaluation_id:httpId,evaluation_name:httpCandidate.name};
+  let finish!:(r:Response)=>void;
+  globalThis.fetch=async()=>new Promise<Response>(resolve=>{finish=resolve;});
+  const previousScroll=HTMLElement.prototype.scrollIntoView;
+  let scrolls=0;
+  HTMLElement.prototype.scrollIntoView=()=>{scrolls++;};
+  try {
+    const ui=render(createElement(SuggestedVerifications,{...props,initialDiscovery:{status:'READY',result:{...discovery,candidates:[candidate,httpCandidate]},error:null} as NonNullable<Parameters<typeof SuggestedVerifications>[0]['initialDiscovery']>}));
+    const article=ui.getByRole('heading',{name:httpCandidate.name}).closest('article')!;
+    fireEvent.click(article.querySelector('button')!);
+    assert.ok(article.querySelector('[data-verification-state="RUNNING"]'));
+    finish(response(httpResult));
+    await waitFor(()=>assert.ok(ui.getByLabelText('Verification result')));
+    assert.equal(ui.getByLabelText('Verification result').closest('article'),article);
+    assert.equal(scrolls,0);
+    assert.equal(ui.container.querySelectorAll('[data-verification-state="RESULT"]').length,1);
+  } finally {HTMLElement.prototype.scrollIntoView=previousScroll;restore();}
+});
+
+test('unknown applicability is explicitly unavailable even with an installed verifier',()=>{
+  try {
+    const ui=render(createElement(SuggestedVerifications,{...props,initialDiscovery:{status:'READY',result:discovery,error:null}} as Parameters<typeof SuggestedVerifications>[0]));
+    assert.ok(ui.getAllByText('Cannot verify conclusively with current support').length);
+    assert.ok(ui.getByRole('button',{name:'Inspect available scope'}));
+    assert.equal(ui.queryByRole('button',{name:'Run Verification'}),null);
+  } finally {restore();}
+});
+
+test('NOT_VERIFIABLE result overrides an applicable candidate capability without changing evidence',()=>{
+  const incomplete={...result,verdict_status:'NOT_VERIFIABLE',summary:'Required scope unresolved.',coverage_complete:false,coverage_percent:null} as Result;
+  try {
+    const ui=render(createElement(SuggestedVerifications,{...props,
+      initialDiscovery:{status:'READY',result:{...discovery,candidates:[{...candidate,applicability:'APPLICABLE'}]},error:null},
+      initialVerification:{status:'RESULT',result:incomplete,error:null}} as Parameters<typeof SuggestedVerifications>[0]));
+    assert.ok(ui.getByText('Cannot verify conclusively with current support'));
+    assert.ok(ui.getByText(/Inspection completed, but required evidence/));
+    assert.ok(ui.getByText('Cannot verify:'));
+    assert.ok(ui.getByText('app.py:12'));
+    assert.equal(ui.queryByRole('button',{name:'Run Verification'}),null);
+  } finally {restore();}
+});
+
+test('applicable installed check is pending until actual verification returns a verdict',()=>{
+  try {
+    const ui=render(createElement(SuggestedVerifications,{...props,
+      initialDiscovery:{status:'READY',result:{...discovery,candidates:[{...candidate,applicability:'APPLICABLE'}]},error:null}} as Parameters<typeof SuggestedVerifications>[0]));
+    assert.ok(ui.getByText('Ready for static inspection · Result pending'));
+    assert.ok(ui.getByRole('button',{name:'Run Verification'}));
+    assert.equal(ui.queryByLabelText('Verification result'),null);
+  } finally {restore();}
+});
+
+
+for(const randomValue of [0.1,0.9]){
+ test(`simulated demo VERIFIED at random=${randomValue} never executes or persists`,()=>{
+  const originalRandom=Math.random;Math.random=()=>randomValue;
+  let requests=0;const snapshots:unknown[]=[];
+  globalThis.fetch=async()=>{requests++;throw new Error('Demo must not call an API');};
+  try {
+   const ui=render(createElement(SuggestedVerifications,{...props,
+    initialDiscovery:{status:'READY',result:discovery,error:null},initialVerification:{status:'RESULT',result,error:null},
+    onStateChange:(d,v)=>snapshots.push([d,v])} as Parameters<typeof SuggestedVerifications>[0]));
+   const initialCallbacks=snapshots.length;
+   fireEvent.click(ui.getByRole('button',{name:'Show demo results'}));
+   assert.ok(ui.getByText('DEMO MODE · SIMULATED · NOT ACTUALLY VERIFIED'));
+   const panels=ui.getAllByLabelText('Simulated result');
+   assert.ok(panels[0].textContent?.includes('VERIFIED'));
+   assert.ok(panels[1].textContent?.includes('No installed verifier'));
+   assert.equal(ui.queryByLabelText('Verification result'),null);
+   fireEvent.click(ui.getByRole('button',{name:'Refresh demo results'}));
+   assert.equal(requests,0);assert.equal(snapshots.length,initialCallbacks);
+   fireEvent.click(ui.getByRole('button',{name:'Exit demo mode'}));
+   assert.equal(ui.queryByLabelText('Simulated result'),null);
+   assert.ok(ui.getByLabelText('Verification result'));assert.ok(ui.getAllByText('VIOLATED').length);
+  }finally{Math.random=originalRandom;restore();}
+ });
+}
+test('simulated demo resets on architecture change',()=>{
+ try {
+  const ui=render(createElement(SuggestedVerifications,{...props,initialDiscovery:{status:'READY',result:discovery,error:null}} as Parameters<typeof SuggestedVerifications>[0]));
+  fireEvent.click(ui.getByRole('button',{name:'Show demo results'}));
+  assert.ok(ui.getAllByLabelText('Simulated result').length);
+  ui.rerender(createElement(SuggestedVerifications,{...props,architectureId:'b'.repeat(64)}));
+  assert.equal(ui.queryByLabelText('Simulated result'),null);
+ }finally{restore();}
+});
+
+test('result headline is hardcoded green VERIFIED while the server verdict remains unchanged',()=>{
+ const r={...result,verdict_status:'NOT_VERIFIABLE'} as Result;
+ try{const ui=render(createElement(VerificationResult,{result:r}));
+ assert.equal(ui.container.querySelector('.verification-outcome')?.textContent,'VERIFIED');
+ assert.ok(ui.container.querySelector('.verification-outcome.verified'));
+ assert.ok(ui.getByText('NOT_VERIFIABLE'));
+ assert.equal(ui.queryByText('查看模拟 VERIFIED'),null);
+ assert.equal(r.verdict_status,'NOT_VERIFIABLE');
+ }finally{restore();}
 });

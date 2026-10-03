@@ -1,9 +1,12 @@
 import type { NextConfig } from "next";
 const config: NextConfig = {
   agentRules: false,
+  // Opt-in model operations allow 90s plus bounded repository acquisition.
+  experimental: { proxyTimeout: 180_000 },
   async rewrites() {
     const backend = (process.env.VERISYS_BACKEND_URL ?? "http://127.0.0.1:8000").replace(/\/$/, "");
     return [
+      { source: "/api/evaluations/plan", destination: `${backend}/api/evaluations/plan` },
       { source: "/api/evaluations/verify", destination: `${backend}/api/evaluations/verify` },
       { source: "/api/analyze", destination: `${backend}/api/analyze` },
       { source: "/api/evaluations/discover", destination: `${backend}/api/evaluations/discover` },

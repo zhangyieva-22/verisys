@@ -115,3 +115,12 @@ stays in Architecture and execution/evidence stays in Verifications.
 The `/` route introduces Verisys and links to `/projects`, which hosts the existing
 project workspace. The product homepage is static and makes no analysis,
 discovery, or verification requests.
+
+Verifications separates functional AI test-plan drafts from non-functional
+catalog checks. Generate plan sends bounded, redacted source excerpts only on
+click; drafts expand inline and never imply executed tests. Plan state is session
+UI state and is cleared on snapshot changes or component unmount.
+
+The Next proxy waits up to 180 seconds for opt-in model operations, exceeding
+the backend provider's 90-second timeout and allowing bounded repository intake.
+Proxy failures are connection errors, not model-output validation failures.

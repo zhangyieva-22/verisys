@@ -79,18 +79,19 @@ def positive_finite(literal):
 
 
 def inspect_call_timeouts(policy: TimeoutPolicy, discovery: DiscoveryResult, architecture: ArchitectureIR,
-                          source_hashes: dict[Path, str]) -> list[Evidence]:
+                          source_hashes: dict[Path, str], *, non_call_limitations=()) -> list[Evidence]:
     """Bounded second read, comparing bytes observed during fresh architecture analysis.
 
-    Any architecture limitation conservatively prevents complete-scope success;
-    we do not parse limitation prose to guess completeness. This is a bounded
+    Call-scope limitations conservatively prevent complete-scope success.
+    Explicitly tagged route-mount presentation limitations do not affect calls;
+    we never parse limitation prose to guess completeness. This is a bounded
     detector contract, never proof that arbitrary Python contains no other calls.
     """
     libraries = {(loc.file, loc.line, loc.column): service.client_library
                  for service in architecture.external_services if service.client_library in policy.libraries
                  for loc in service.call_sites}
     sites = sorted(libraries, key=lambda item: (item[0], item[1], -1 if item[2] is None else item[2]))
-    issues = list(architecture.limitations)
+    issues = [item for item in architecture.limitations if item not in non_call_limitations]
     outside = sorted({service.client_library or service.name for service in architecture.external_services
                       if service.client_library not in policy.libraries})
     evidence = []
@@ -143,7 +144,7 @@ def inspect_call_timeouts(policy: TimeoutPolicy, discovery: DiscoveryResult, arc
                  call_evidence_ids=[item.id for item in evidence],
                  analyzed_sources={path.as_posix(): digest for path, digest in sorted(source_hashes.items())},
                  outside_grammar=outside)
-    limitations = [*policy.limitations, *sorted(set(issues))]
+    limitations = [*policy.limitations, *sorted(set(issues)), *sorted(set(non_call_limitations))]
     limitations += [policy.outside_note.format(library=library) for library in outside]
     evidence.append(make_evidence(policy, scope, "fresh repository discovery and architecture analysis", limitations=limitations))
     return evidence

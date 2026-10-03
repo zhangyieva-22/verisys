@@ -93,3 +93,11 @@ The enrichment request is held by the project session, so leaving the Architectu
 - Sending code to the model provider is a data-sharing decision: excerpts can contain proprietary logic, and redaction can miss secrets.
   Use it only on repositories whose code you may send to the configured provider.
 - Results are saved locally and reused for the same pinned commit, `architecture_id`, model and prompt version; local-path requests always run again. See [saved results](architecture.md#saved-results).
+
+## Related: AI test-plan drafting
+
+The explicit `/api/evaluations/plan` operation reuses excerpt selection, redaction
+and citation checks to draft functional tests or plans for grounded catalog
+evaluations. It does not infer executed results or run anything. The draft label
+is DRAFT_NOT_EXECUTED; acceptance questions require human confirmation. See the
+architecture document for the endpoint and UI contract.

@@ -168,3 +168,10 @@ Every item is labelled inferred, not verified, and appears in a separate Underst
 See [the understanding layer](understanding-layer.md).
 The Architecture tab now shows only the Dependency View; the System Flow canvas was removed because it was empty for repositories without a LangGraph `StateGraph`.
 The Architecture tab's default view is a layered System Diagram built from detected facts; Enrich with AI adds cited, inferred components (such as client, frontend and infrastructure) and a request path, drawn as visibly inferred.
+
+## Incremental UX: opt-in plan drafts
+
+Implemented functional/non-functional grouping in Verifications and explicit
+source-cited AI plan drafts for functional behavior and catalog checks without
+executors. Drafts are not run results or executable plans. Runtime execution,
+generated script execution and new verifier implementations remain out of scope.
